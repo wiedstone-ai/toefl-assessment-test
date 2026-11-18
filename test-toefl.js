@@ -70,7 +70,8 @@ window.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // 3. Load Saved Progress if any
+  // 3. Load Saved Progress if any & Inisialisasi Opsi Acak
+  initShuffledOptions();
   loadSavedProgress();
 
   // 4. Initialize UI
@@ -81,6 +82,72 @@ window.addEventListener('DOMContentLoaded', () => {
   // 5. Start Countdown Timer
   startCountdownTimer();
 });
+
+// Map Pengacakan Posisi Opsi Soal (Disimpan di localStorage agar tetap konsisten untuk tiap peserta)
+let shuffledOptionsMap = {};
+
+function initShuffledOptions() {
+  const saved = localStorage.getItem('toefl_shuffled_options_' + packageId);
+  if (saved) {
+    try {
+      shuffledOptionsMap = JSON.parse(saved);
+    } catch (e) {}
+  }
+}
+
+/**
+ * Mengambil opsi soal yang telah diacak posisinya (Tanpa label huruf A, B, C, D)
+ * Menjamin opsi tiap peserta berbeda urutan dan tetap konsisten saat refresh/HP mati.
+ */
+function getShuffledOptionsForQuestion(q) {
+  const qid = q.id;
+
+  // Bersihkan teks opsi: Jika Section 2 Part B bertuliskan "Underlined part (X)", ambil langsung kata yang digarisbawahi dari prompt
+  const cleanOptions = q.options.map(opt => {
+    let displayText = opt.text;
+    if (displayText.indexOf("Underlined part") >= 0) {
+      const regex = new RegExp(`<span[^>]*data-opt=['"]${opt.key}['"][^>]*>([^<]+)<\\/span>`, 'i');
+      const match = q.prompt.match(regex);
+      if (match && match[1]) {
+        displayText = match[1].trim();
+      }
+    }
+    return {
+      key: opt.key,
+      text: displayText
+    };
+  });
+
+  // Jika peserta ini sudah memiliki urutan acak tersimpan untuk nomor ini, gunakan urutan tersebut
+  if (shuffledOptionsMap[qid] && Array.isArray(shuffledOptionsMap[qid])) {
+    const keyOrder = shuffledOptionsMap[qid];
+    const ordered = [];
+    keyOrder.forEach(k => {
+      const found = cleanOptions.find(o => o.key === k);
+      if (found) ordered.push(found);
+    });
+    if (ordered.length === cleanOptions.length) {
+      return ordered;
+    }
+  }
+
+  // Jika belum ada, acak urutan opsi untuk peserta ini (Fisher-Yates Shuffle)
+  const shuffled = [...cleanOptions];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = temp;
+  }
+
+  // Simpan urutan acak peserta ini
+  shuffledOptionsMap[qid] = shuffled.map(o => o.key);
+  try {
+    localStorage.setItem('toefl_shuffled_options_' + packageId, JSON.stringify(shuffledOptionsMap));
+  } catch (e) {}
+
+  return shuffled;
+}
 
 // Load progress from localStorage
 function loadSavedProgress() {
@@ -331,20 +398,25 @@ function renderCurrentQuestion() {
   const promptEl = document.getElementById('question-prompt-text');
   promptEl.innerHTML = q.prompt;
 
-  // Render Options A, B, C, D
+  // Render Options (Posisi diacak & Huruf A, B, C, D dihapuskan)
   const optionsContainer = document.getElementById('options-container');
   optionsContainer.innerHTML = '';
 
   const chosenKey = userAnswers[qid] || null;
+  const displayOptions = getShuffledOptionsForQuestion(q);
 
-  q.options.forEach(opt => {
+  displayOptions.forEach(opt => {
+    const isSelected = (chosenKey === opt.key);
     const card = document.createElement('div');
-    card.className = 'option-card' + (chosenKey === opt.key ? ' selected' : '');
+    card.className = 'option-card' + (isSelected ? ' selected' : '');
     card.onclick = () => selectOption(qid, opt.key);
 
+    // Indikator visual radio / centang, TANPA huruf A, B, C, D
     const badge = document.createElement('div');
     badge.className = 'opt-badge';
-    badge.textContent = opt.key;
+    badge.innerHTML = isSelected 
+      ? '<span style="font-size:0.95rem; font-weight:900; line-height:1; color:#ffffff;">✓</span>' 
+      : '<span style="font-size:0.5rem; color:#94a3b8; line-height:1;">●</span>';
 
     const txt = document.createElement('div');
     txt.className = 'opt-text';
