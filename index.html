@@ -212,6 +212,31 @@
 
   <main class="portal-wrapper">
 
+    <!-- 0. RESUME EXAM BANNER (TAMPIL OTOMATIS JIKA HP MATI / TERPUTUS) -->
+    <div id="resume-exam-banner" style="display: none; background: linear-gradient(135deg, #065f46 0%, #047857 100%); color: white; border-radius: 12px; padding: 22px; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(4,120,87,0.3); border: 2.5px solid #34d399;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+        <div style="flex: 1; min-width: 280px;">
+          <div style="display: inline-block; background: #fef08a; color: #854d0e; font-size: 0.78rem; font-weight: 800; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+            ⚡ Sesi Ujian Berjalan Terdeteksi (HP Mati / Terputus)
+          </div>
+          <h2 style="font-size: 1.35rem; color: #ffffff; margin: 4px 0;" id="resume-student-name">
+            Lanjutkan Ujian: Nama Siswa
+          </h2>
+          <p style="font-size: 0.92rem; color: #d1fae5; line-height: 1.4;">
+            Perangkat atau browser Anda sebelumnya keluar/mati. Seluruh progres jawaban (<strong id="resume-answered-count">0</strong>/140 soal) dan sisa waktu pengerjaan (<strong id="resume-time-left">--:--</strong>) <strong>tersimpan aman di HP/komputer ini</strong>.
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button type="button" onclick="executeResumeExam()" class="btn btn-gold" style="padding: 14px 22px; font-size: 1.05rem; font-weight: 800; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer;">
+            🔄 KLIK DI SINI UNTUK MELANJUTKAN ➔
+          </button>
+          <button type="button" onclick="resetAndStartFresh()" class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.5); font-size: 0.8rem; padding: 10px 14px; border-radius: 8px;">
+            Mulai Ujian Baru
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 1. LIVE SESSION STATUS BANNER -->
     <div id="live-session-banner" class="status-banner banner-waiting">
       <div style="font-size: 2rem;" id="banner-icon">⏳</div>
@@ -493,14 +518,28 @@
           tokenLateCount.textContent = 'Akses Ditutup (Terlambat ≥ 1 Jam)';
           tokenLateCount.style.color = '#b91c1c';
 
-          submitBtn.disabled = true;
-          submitBtn.className = 'btn btn-outline btn-block';
-          submitBtn.style.cursor = 'not-allowed';
-          submitBtn.style.opacity = '0.6';
-          submitBtn.textContent = '⛔ Akses Ditolak (Terlambat ≥ 1 Jam) — Silakan Ikuti Sesi Selanjutnya';
+          if (checkResumeAvailability()) {
+            // Jika ada sesi berjalan di perangkat ini, beri akses penuh untuk melanjutkan!
+            submitBtn.disabled = false;
+            submitBtn.className = 'btn btn-gold btn-block';
+            submitBtn.style.cursor = 'pointer';
+            submitBtn.style.opacity = '1';
+            submitBtn.textContent = '🔄 Sesi Ditemukan! Klik di Sini untuk Lanjutkan Ujian ➔';
 
-          noticeDiv.style.display = 'block';
-          noticeDiv.textContent = `Mohon maaf, Anda terlambat ${status.elapsedMinutes} menit (≥ 1 jam). Silakan bergabung di sesi berikutnya: ${status.nextSession ? status.nextSession.name + ' jam ' + status.nextSession.start + ' WIB' : '-'}.`;
+            noticeDiv.style.display = 'block';
+            noticeDiv.style.color = '#047857';
+            noticeDiv.innerHTML = '⚡ <strong>Sesi berjalan Anda tersimpan aman di HP ini.</strong> Klik tombol emas di atas untuk langsung kembali ke lembar soal.';
+          } else {
+            submitBtn.disabled = true;
+            submitBtn.className = 'btn btn-outline btn-block';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.style.opacity = '0.6';
+            submitBtn.textContent = '⛔ Akses Ditolak (Terlambat ≥ 1 Jam) — Silakan Ikuti Sesi Selanjutnya';
+
+            noticeDiv.style.display = 'block';
+            noticeDiv.style.color = '#dc2626';
+            noticeDiv.textContent = `Mohon maaf, Anda terlambat ${status.elapsedMinutes} menit (≥ 1 jam). Silakan bergabung di sesi berikutnya: ${status.nextSession ? status.nextSession.name + ' jam ' + status.nextSession.start + ' WIB' : '-'}.`;
+          }
 
         } else {
           // MASIH BOLEH MASUK (< 1 JAM)
@@ -631,15 +670,80 @@
       }
     }
 
+    // Cek apakah ada sesi pengerjaan yang belum selesai di perangkat ini
+    function checkResumeAvailability() {
+      const savedInfo = localStorage.getItem('toefl_student_info');
+      const savedTime = localStorage.getItem('toefl_time_1');
+      const isFinished = localStorage.getItem('toefl_exam_finished_1') === 'true';
+      const savedAnswers = localStorage.getItem('toefl_answers_1');
+
+      if (savedInfo && savedTime && !isFinished) {
+        const timeLeft = parseInt(savedTime, 10);
+        if (!isNaN(timeLeft) && timeLeft > 0) {
+          try {
+            const student = JSON.parse(savedInfo);
+            let answered = 0;
+            if (savedAnswers) {
+              answered = Object.keys(JSON.parse(savedAnswers)).length;
+            }
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            const timeFormatted = `${m} menit ${s} detik`;
+
+            const banner = document.getElementById('resume-exam-banner');
+            if (banner) {
+              banner.style.display = 'block';
+              document.getElementById('resume-student-name').textContent = `Lanjutkan Ujian: ${student.nama || 'Peserta'}`;
+              document.getElementById('resume-answered-count').textContent = answered;
+              document.getElementById('resume-time-left').textContent = timeFormatted;
+            }
+            return true;
+          } catch(e) {}
+        }
+      }
+      const banner = document.getElementById('resume-exam-banner');
+      if (banner) banner.style.display = 'none';
+      return false;
+    }
+
+    // Melanjutkan Ujian yang Sedang Berjalan
+    function executeResumeExam() {
+      const savedInfo = localStorage.getItem('toefl_student_info');
+      if (!savedInfo) {
+        alert("Data identitas tidak ditemukan.");
+        return;
+      }
+      sessionStorage.setItem('toefl_student_info', savedInfo);
+      sessionStorage.setItem('toefl_package_id', '1');
+      const token = localStorage.getItem('toefl_session_password') || 'MALAM19';
+      sessionStorage.setItem('toefl_session_password', token);
+      window.location.href = 'test-toefl.html';
+    }
+
+    // Reset jika peserta ingin mulai baru
+    function resetAndStartFresh() {
+      if (confirm("Apakah Anda yakin ingin membatalkan sesi sebelumnya dan memulai dari awal? Data jawaban tersimpan pada perangkat ini akan direset.")) {
+        localStorage.removeItem('toefl_time_1');
+        localStorage.removeItem('toefl_answers_1');
+        localStorage.removeItem('toefl_flags_1');
+        localStorage.removeItem('toefl_curr_idx_1');
+        localStorage.removeItem('toefl_exam_finished_1');
+        document.getElementById('resume-exam-banner').style.display = 'none';
+        location.reload();
+      }
+    }
+
     // Eksekusi Mulai Ujian
     function handleStartExam() {
       const status = evaluateCurrentSchedule();
-      if (!status.activeSession) {
+      const isResuming = checkResumeAvailability();
+
+      if (!status.activeSession && !isResuming) {
         alert("Sesi ujian belum dibuka. Silakan tunggu hingga jam sesi dimulai!");
         return;
       }
 
-      if (status.isLate) {
+      if (status.isLate && !isResuming) {
         alert(`Akses Ditolak!\nSesi ${status.activeSession.name} telah berjalan lebih dari 1 jam (60 menit).\nBatas toleransi keterlambatan telah berakhir.\nSilakan mengikuti sesi berikutnya.`);
         return;
       }
@@ -650,8 +754,8 @@
       const rombel = document.getElementById('input-rombel').value;
       const presensi = document.getElementById('input-presensi').value.trim();
       const nama = document.getElementById('input-nama').value.trim();
-      const token = status.activeSession.token;
-      const packageId = status.activeSession.paket || "1";
+      const token = status.activeSession ? status.activeSession.token : (localStorage.getItem('toefl_session_password') || "MALAM19");
+      const packageId = "1"; // Seluruh sesi dipatok menggunakan Paket 1
 
       if (!sekolah || !tingkat || !keahlian || !rombel || !presensi || !nama) {
         alert("Harap lengkapi semua kolom identitas peserta didik!");
@@ -677,7 +781,9 @@
       localStorage.setItem('toefl_package_id', packageId);
       sessionStorage.setItem('toefl_package_id', packageId);
 
-      sessionStorage.setItem('toefl_session_name', status.activeSession.name);
+      if (status.activeSession) {
+        sessionStorage.setItem('toefl_session_name', status.activeSession.name);
+      }
 
       // Langsung masuk ke lembar ujian resmi
       window.location.href = 'test-toefl.html';
@@ -685,7 +791,8 @@
 
     // Inisialisasi Saat Halaman Dimuat
     window.addEventListener('DOMContentLoaded', () => {
-      // 1. Muat info tersimpan jika ada
+      // 1. Muat info tersimpan dan cek apakah ada sesi berjalan (resume)
+      checkResumeAvailability();
       const saved = localStorage.getItem('toefl_student_info');
       if (saved) {
         try {

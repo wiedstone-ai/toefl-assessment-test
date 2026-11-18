@@ -60,12 +60,10 @@ window.addEventListener('DOMContentLoaded', () => {
   studentInfo = JSON.parse(rawInfo);
 
   sessionPassword = sessionStorage.getItem('toefl_session_password') || localStorage.getItem('toefl_session_password') || "SESI-TOEFL";
-  packageId = sessionStorage.getItem('toefl_package_id') || localStorage.getItem('toefl_package_id') || "1";
+  packageId = "1"; // Sementara seluruh peserta dipatok menggunakan Paket 1
 
-  // 2. Select Question Bank deterministically based on packageId (kept confidential from student UI)
-  if (packageId === "2" && window.TOEFL_BANK_PAKET_2 && window.TOEFL_BANK_PAKET_2.length === 140) {
-    questions = window.TOEFL_BANK_PAKET_2;
-  } else if (window.TOEFL_BANK_PAKET_1 && window.TOEFL_BANK_PAKET_1.length === 140) {
+  // 2. Gunakan Bank Soal Paket 1
+  if (window.TOEFL_BANK_PAKET_1 && window.TOEFL_BANK_PAKET_1.length === 140) {
     questions = window.TOEFL_BANK_PAKET_1;
   } else {
     alert("Bank soal sedang dimuat atau tidak lengkap. Silakan refresh halaman.");
@@ -375,6 +373,7 @@ function renderCurrentQuestion() {
 // Option Selection
 function selectOption(qid, key) {
   userAnswers[qid] = key;
+  autoSaveProgress(); // Simpan instan setiap kali opsi diklik agar tidak hilang jika HP mati
   renderCurrentQuestion();
 }
 
@@ -386,6 +385,7 @@ function toggleFlagCurrentQuestion() {
   } else {
     flaggedQuestions[qid] = true;
   }
+  autoSaveProgress(); // Simpan instan
   renderCurrentQuestion();
 }
 
@@ -648,6 +648,7 @@ async function executeFinalSubmission() {
     console.warn("Error sending score payload to server:", err);
   }
 
-  // Clear exam in-progress cache to prevent re-entering
+  // Tandai ujian telah selesai dan bersihkan cache in-progress
+  localStorage.setItem('toefl_exam_finished_' + packageId, 'true');
   localStorage.removeItem('toefl_time_' + packageId);
 }

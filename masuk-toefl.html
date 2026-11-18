@@ -167,15 +167,20 @@
       const status = evaluateCurrentSchedule();
       const inputEl = document.getElementById('input-token');
       const submitBtn = document.getElementById('btn-submit-token');
+      const savedTime = localStorage.getItem('toefl_time_1');
+      const isResuming = (savedTime && parseInt(savedTime, 10) > 0);
 
       if (status.activeSession) {
         inputEl.value = status.activeSession.token;
-        if (status.isLate) {
+        if (status.isLate && !isResuming) {
           showStatus(`Akses Ditolak: Sesi ${status.activeSession.name} telah berlangsung ≥ 1 jam (${status.elapsedMinutes} menit). Silakan ikuti sesi selanjutnya.`, 'error');
           submitBtn.disabled = true;
           submitBtn.style.opacity = '0.5';
           submitBtn.style.cursor = 'not-allowed';
           submitBtn.textContent = '⛔ Akses Ditolak (Terlambat ≥ 1 Jam)';
+        } else if (isResuming) {
+          showStatus(`Sesi pengerjaan sebelumnya terdeteksi! Klik tombol di bawah untuk melanjutkan.`, 'success');
+          submitBtn.textContent = '🔄 Lanjutkan Ujian Sekarang ➔';
         }
       }
     });
@@ -186,7 +191,10 @@
       const submitBtn = document.getElementById('btn-submit-token');
 
       const status = evaluateCurrentSchedule();
-      if (status.activeSession && status.isLate) {
+      const savedTime = localStorage.getItem('toefl_time_1');
+      const isResuming = (savedTime && parseInt(savedTime, 10) > 0);
+
+      if (status.activeSession && status.isLate && !isResuming) {
         showStatus(`Akses Ditolak: Sesi telah berlangsung ≥ 1 jam (${status.elapsedMinutes} menit). Anda harus mengikuti sesi selanjutnya.`, 'error');
         return;
       }
@@ -197,7 +205,7 @@
 
       let verified = false;
       let sessionName = status.activeSession ? status.activeSession.name : "Sesi Ujian";
-      let packageId = status.activeSession ? status.activeSession.paket : "1";
+      let packageId = "1"; // Sementara dipatok Paket 1
 
       const schedules = getScheduleList();
       const found = schedules.find(s => s.token.toUpperCase() === token && s.status === 'AKTIF');

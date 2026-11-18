@@ -49,7 +49,7 @@ const DEFAULT_SCHEDULES = [
     start: "13:00",
     end: "16:00",
     token: "SIANG13",
-    paket: "2",
+    paket: "1",
     status: "AKTIF",
     toleransiMenit: 60,
     keterangan: "Sesi Siang (13.00 - 16.00 WIB)"
@@ -101,6 +101,7 @@ function getScheduleList() {
         // Validasi jika jadwal masih format lama 2 jam, upgrade ke 3 jam dengan toleransi 60 menit
         let needUpgrade = false;
         parsed.forEach(s => {
+          s.paket = "1"; // Sementara dipatok seluruh sesi menggunakan Paket 1
           if (s.toleransiMenit !== 60) {
             s.toleransiMenit = 60;
             needUpgrade = true;
@@ -273,7 +274,7 @@ function getPreviousStats() {
   if (cached) {
     try {
       return JSON.parse(cached);
-    } catch (e) {}
+    } catch (e) { }
   }
   return DEFAULT_PREVIOUS_STATS;
 }
