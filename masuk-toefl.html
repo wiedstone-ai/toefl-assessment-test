@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,7 @@
       border: 1.5px solid #e2e8f0;
       padding: 32px 28px;
     }
+
     .student-badge-box {
       background: #f8fafc;
       border: 1px solid #cbd5e1;
@@ -25,6 +27,7 @@
       flex-direction: column;
       gap: 6px;
     }
+
     .password-field {
       font-family: "Courier New", Courier, monospace;
       font-size: 1.35rem;
@@ -38,11 +41,13 @@
       transition: all 0.2s ease;
       width: 100%;
     }
+
     .password-field:focus {
       border-color: #1d4ed8;
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
       outline: none;
     }
+
     .status-msg {
       padding: 10px 14px;
       border-radius: 6px;
@@ -53,6 +58,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- Neutral Academic Header -->
@@ -66,7 +72,8 @@
         </div>
       </div>
       <div class="header-actions">
-        <a href="index.html" class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.4); font-size: 0.85rem;">
+        <a href="index.html" class="btn btn-outline"
+          style="color: white; border-color: rgba(255,255,255,0.4); font-size: 0.85rem;">
           🏠 Kembali ke Portal
         </a>
       </div>
@@ -86,7 +93,8 @@
 
       <!-- Student Identification Badge -->
       <div class="student-badge-box">
-        <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 700;">
+        <div
+          style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 700;">
           Identitas Peserta Terdaftar:
         </div>
         <div style="font-size: 1.1rem; font-weight: 800; color: #0f172a;" id="display-nama">
@@ -105,15 +113,18 @@
       <!-- Password Input Form -->
       <form id="auth-form" onsubmit="event.preventDefault(); verifyPassword();">
         <div class="form-group">
-          <label for="input-token" style="font-weight: 700; color: var(--secondary-navy); display: flex; justify-content: space-between;">
+          <label for="input-token"
+            style="font-weight: 700; color: var(--secondary-navy); display: flex; justify-content: space-between;">
             <span>Password / Token Sesi</span>
             <span style="font-weight: normal; font-size: 0.8rem; color: #64748b;">(Semua Sekolah)</span>
           </label>
-          <input type="text" id="input-token" class="password-field" placeholder="CONTOH: MALAM19" required autocomplete="off" autofocus>
+          <input type="text" id="input-token" class="password-field" placeholder="CONTOH: MALAM19" required
+            autocomplete="off" autofocus>
         </div>
 
         <div style="margin-top: 22px;">
-          <button type="submit" id="btn-submit-token" class="btn btn-gold btn-block" style="padding: 14px; font-size: 1.05rem;">
+          <button type="submit" id="btn-submit-token" class="btn btn-gold btn-block"
+            style="padding: 14px; font-size: 1.05rem;">
             <span>🚀</span> Verifikasi &amp; Masuk Lembar Soal TOEFL ➔
           </button>
         </div>
@@ -121,8 +132,10 @@
         <!-- Status Message Box -->
         <div id="status-box" class="status-msg"></div>
 
-        <div style="margin-top: 20px; font-size: 0.82rem; color: #64748b; line-height: 1.5; text-align: center; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-          ℹ️ <em>Durasi ujian: 3 jam (termasuk 1 jam grace period). Toleransi keterlambatan maksimal 1 jam (60 menit) dari waktu mulai.</em>
+        <div
+          style="margin-top: 20px; font-size: 0.82rem; color: #64748b; line-height: 1.5; text-align: center; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          ℹ️ <em>Durasi ujian: 3 jam (termasuk 1 jam grace period). Toleransi keterlambatan maksimal 1 jam (60 menit)
+            dari waktu mulai.</em>
         </div>
       </form>
     </div>
@@ -147,7 +160,7 @@
 
       studentData = JSON.parse(raw);
       document.getElementById('display-nama').textContent = studentData.nama || "-";
-      document.getElementById('display-meta').textContent = 
+      document.getElementById('display-meta').textContent =
         `${studentData.sekolah} | Kelas ${studentData.tingkat} | Keahlian ${studentData.keahlian} | Rombel ${studentData.rombel} | Presensi ${studentData.presensi}`;
 
       // Evaluasi jadwal sesi aktif
@@ -232,4 +245,5 @@
     }
   </script>
 </body>
+
 </html>

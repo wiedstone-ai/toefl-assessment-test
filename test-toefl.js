@@ -7,7 +7,7 @@
  */
 
 // Google Apps Script Default Web App URL
-const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbw7bPABcVf7FFu6u6MeTP_fT0gsHOx8qCtw3YMjDHqXjDLHs_wqFPZPg1vUttXOQCzf/exec";
+const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbxUcptl2lfudxJKpHS0jw0_P8aORHrfmqTubTzXRIAWc1ho0SdLNQEPetXUdgi-G4iB/exec";
 
 // Official ETS TOEFL ITP Scaled Score Conversion Tables (Level 1)
 const ETS_LISTENING_CONVERSION = [
