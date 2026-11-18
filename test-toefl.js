@@ -41,7 +41,7 @@ let flaggedQuestions = {}; // { qid: true }
 let studentInfo = {};
 let sessionPassword = "";
 let packageId = "1";
-let totalExamSeconds = 115 * 60; // 115 minutes
+let totalExamSeconds = 180 * 60; // 180 minutes (3 jam: 2 jam waktu reguler + 1 jam grace period)
 let timerInterval = null;
 let examFinished = false;
 let audioSpeed = 1.0;
@@ -150,7 +150,7 @@ function startCountdownTimer() {
 
     if (totalExamSeconds <= 0) {
       clearInterval(timerInterval);
-      alert("⏰ Waktu ujian 115 menit telah habis! Sistem akan mengumpulkan lembar jawaban Anda.");
+      alert("⏰ Waktu ujian (3 jam termasuk grace period) telah habis! Sistem akan mengumpulkan lembar jawaban Anda.");
       executeFinalSubmission();
     } else {
       updateTimerDisplay();
@@ -606,7 +606,7 @@ async function executeFinalSubmission() {
   document.getElementById('score-modal').style.display = 'flex';
 
   // 4. Send to Google Sheets (records session password!)
-  const elapsedSeconds = (115 * 60) - totalExamSeconds;
+  const elapsedSeconds = (180 * 60) - totalExamSeconds;
   const elapsedMinutes = Math.floor(elapsedSeconds / 60);
 
   const payload = {

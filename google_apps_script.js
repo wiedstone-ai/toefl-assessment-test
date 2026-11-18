@@ -53,13 +53,12 @@ function getPassSheet(ss) {
          .setHorizontalAlignment("center");
     sheet.setFrozenRows(1);
 
-    // Nilai Default Sesi Ujian
+    // Nilai Default Sesi Ujian (4 Sesi Baku: 3 Jam per Sesi, Grace Period 1 Jam)
     const defaultSessions = [
-      ["SESI1-PAGI", "Sesi 1 Pagi (07.30 - 09.30)", "1", new Date(), "AKTIF"],
-      ["SESI2-SIANG", "Sesi 2 Siang (10.00 - 12.00)", "2", new Date(), "AKTIF"],
-      ["SKADAPATI", "Sesi Khusus SMK Negeri 2 Pati", "1", new Date(), "AKTIF"],
-      ["SABAKU", "Sesi Khusus SMA Negeri 1 Bae Kudus", "2", new Date(), "AKTIF"],
-      ["TOEFL2026", "Password Cadangan Umum", "1", new Date(), "AKTIF"]
+      ["MALAM19", "Sesi Malam (19.00 - 22.00 WIB)", "1", new Date(), "AKTIF"],
+      ["PAGI09", "Sesi Pagi (09.00 - 12.00 WIB)", "1", new Date(), "AKTIF"],
+      ["SIANG13", "Sesi Siang (13.00 - 16.00 WIB)", "2", new Date(), "AKTIF"],
+      ["SORE16", "Sesi Sore (16.00 - 19.00 WIB)", "1", new Date(), "AKTIF"]
     ];
     for (let i = 0; i < defaultSessions.length; i++) {
       sheet.appendRow(defaultSessions[i]);
@@ -297,6 +296,58 @@ function recordStudentSubmission(data) {
 }
 
 /**
+ * Menghitung statistik rekapitulasi nilai dari Sheet 'Rekap_Nilai_TOEFL'
+ */
+function getRekapStats() {
+  const ss = getSpreadsheet();
+  const sheet = getScoreSheet(ss);
+  const data = sheet.getDataRange().getValues();
+  
+  if (data.length <= 1) {
+    return {
+      sessionLabel: "Sesi Sebelumnya",
+      totalPeserta: 0,
+      highest: { toefl: 0, scale100: 0, cefr: "-" },
+      lowest: { toefl: 0, scale100: 0, cefr: "-" },
+      average: { toefl: 0, scale100: 0, cefr: "-" }
+    };
+  }
+
+  const totalStudents = data.length - 1;
+  let maxToefl = -1, maxScale = -1, maxCefr = "";
+  let minToefl = 9999, minScale = 9999, minCefr = "";
+  let sumToefl = 0, sumScale = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const toefl = Number(row[15]) || 310;
+    const scale = Number(row[16]) || 0;
+    const cefr = String(row[17] || "Level B1 (Independent User)");
+
+    if (toefl > maxToefl) { maxToefl = toefl; maxScale = scale; maxCefr = cefr; }
+    if (toefl < minToefl) { minToefl = toefl; minScale = scale; minCefr = cefr; }
+
+    sumToefl += toefl;
+    sumScale += scale;
+  }
+
+  const avgToefl = Math.round(sumToefl / totalStudents);
+  const avgScale = Math.round(sumScale / totalStudents);
+  let avgCefr = "Level B1 (Independent User)";
+  if (avgToefl >= 543) avgCefr = "Level B2 (Vantage)";
+  else if (avgToefl < 433 && avgToefl >= 380) avgCefr = "Level High A2";
+  else if (avgToefl < 380) avgCefr = "Level A1-A2";
+
+  return {
+    sessionLabel: "Sesi Sebelumnya",
+    totalPeserta: totalStudents,
+    highest: { toefl: maxToefl, scale100: maxScale, cefr: maxCefr },
+    lowest: { toefl: minToefl, scale100: minScale, cefr: minCefr },
+    average: { toefl: avgToefl, scale100: avgScale, cefr: avgCefr }
+  };
+}
+
+/**
  * Handle HTTP POST
  */
 function doPost(e) {
@@ -329,6 +380,11 @@ function doPost(e) {
       return sendJsonResponse(res);
     }
     
+    if (action === "get_stats" || action === "stats") {
+      const stats = getRekapStats();
+      return sendJsonResponse({ status: "success", stats: stats });
+    }
+
     // Default action: submit score
     const res = recordStudentSubmission(data);
     return sendJsonResponse(res);
@@ -359,6 +415,11 @@ function doGet(e) {
     if (action === "set_password" || action === "save_password") {
       const res = setSessionPassword(params.token, params.keterangan, params.paket, params.status);
       return sendJsonResponse(res, params.callback);
+    }
+    
+    if (action === "get_stats" || action === "stats") {
+      const stats = getRekapStats();
+      return sendJsonResponse({ status: "success", stats: stats }, params.callback);
     }
     
     if (action === "submit_score" || action === "submit") {

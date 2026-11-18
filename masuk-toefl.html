@@ -79,8 +79,8 @@
       <div style="text-align: center; margin-bottom: 20px;">
         <div style="font-size: 2.2rem; margin-bottom: 6px;">🔐</div>
         <h2 style="color: var(--primary-navy); font-size: 1.45rem;">Verifikasi Password Sesi Ujian</h2>
-        <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 4px;">
-          Masukkan token / password sesi yang dibagikan oleh Pengawas Ruang.
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 4px;" id="sub-title-info">
+          Token sesi aktif telah terdeteksi dan terpasang otomatis.
         </p>
       </div>
 
@@ -107,9 +107,9 @@
         <div class="form-group">
           <label for="input-token" style="font-weight: 700; color: var(--secondary-navy); display: flex; justify-content: space-between;">
             <span>Password / Token Sesi</span>
-            <span style="font-weight: normal; font-size: 0.8rem; color: #64748b;">(Huruf Besar)</span>
+            <span style="font-weight: normal; font-size: 0.8rem; color: #64748b;">(Semua Sekolah)</span>
           </label>
-          <input type="text" id="input-token" class="password-field" placeholder="CONTOH: SESI1-PAGI" required autocomplete="off" autofocus>
+          <input type="text" id="input-token" class="password-field" placeholder="CONTOH: MALAM19" required autocomplete="off" autofocus>
         </div>
 
         <div style="margin-top: 22px;">
@@ -122,7 +122,7 @@
         <div id="status-box" class="status-msg"></div>
 
         <div style="margin-top: 20px; font-size: 0.82rem; color: #64748b; line-height: 1.5; text-align: center; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-          ℹ️ <em>Siswa pada sesi yang sama akan otomatis menempuh paket soal yang seragam. Password sesi ini akan dicatat dalam database rekapitulasi nilai guru.</em>
+          ℹ️ <em>Durasi ujian: 3 jam (termasuk 1 jam grace period). Toleransi keterlambatan maksimal 1 jam (60 menit) dari waktu mulai.</em>
         </div>
       </form>
     </div>
@@ -133,24 +133,11 @@
     <p>TOEFL Assessment Test System &copy; 2026/2027</p>
   </footer>
 
+  <script src="schedule-config.js"></script>
   <script>
-    // Default Google Apps Script URL (bila dihubungkan ke Web App)
-    const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbw7bPABcVf7FFu6u6MeTP_fT0gsHOx8qCtw3YMjDHqXjDLHs_wqFPZPg1vUttXOQCzf/exec";
-
-    // Fallback Table untuk Offline/Lokal
-    const FALLBACK_SESSIONS = {
-      "SESI1-PAGI": { name: "Sesi 1 Pagi (07.30 - 09.30)", pkg: "1" },
-      "SESI2-SIANG": { name: "Sesi 2 Siang (10.00 - 12.00)", pkg: "2" },
-      "SKADAPATI": { name: "Sesi Khusus SMK Negeri 2 Pati", pkg: "1" },
-      "SABAKU": { name: "Sesi Khusus SMA Negeri 1 Bae Kudus", pkg: "2" },
-      "TOEFL2026": { name: "Sesi Cadangan Umum", pkg: "1" },
-      "ALL": { name: "Password Umum Semua Sesi", pkg: "1" }
-    };
-
     let studentData = null;
 
     window.addEventListener('DOMContentLoaded', () => {
-      // Ambil data siswa dari sessionStorage atau localStorage
       const raw = sessionStorage.getItem('toefl_student_info') || localStorage.getItem('toefl_student_info');
       if (!raw) {
         alert("Data identitas peserta didik belum diisi. Silakan lengkapi di halaman awal.");
@@ -162,89 +149,66 @@
       document.getElementById('display-nama').textContent = studentData.nama || "-";
       document.getElementById('display-meta').textContent = 
         `${studentData.sekolah} | Kelas ${studentData.tingkat} | Keahlian ${studentData.keahlian} | Rombel ${studentData.rombel} | Presensi ${studentData.presensi}`;
+
+      // Evaluasi jadwal sesi aktif
+      const status = evaluateCurrentSchedule();
+      const inputEl = document.getElementById('input-token');
+      const submitBtn = document.getElementById('btn-submit-token');
+
+      if (status.activeSession) {
+        inputEl.value = status.activeSession.token;
+        if (status.isLate) {
+          showStatus(`Akses Ditolak: Sesi ${status.activeSession.name} telah berlangsung ≥ 1 jam (${status.elapsedMinutes} menit). Silakan ikuti sesi selanjutnya.`, 'error');
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = '0.5';
+          submitBtn.style.cursor = 'not-allowed';
+          submitBtn.textContent = '⛔ Akses Ditolak (Terlambat ≥ 1 Jam)';
+        }
+      }
     });
 
     async function verifyPassword() {
       const inputEl = document.getElementById('input-token');
       const token = inputEl.value.trim().toUpperCase();
-      const statusBox = document.getElementById('status-box');
       const submitBtn = document.getElementById('btn-submit-token');
 
-      if (!token) {
-        showStatus('Harap masukkan password sesi!', 'error');
+      const status = evaluateCurrentSchedule();
+      if (status.activeSession && status.isLate) {
+        showStatus(`Akses Ditolak: Sesi telah berlangsung ≥ 1 jam (${status.elapsedMinutes} menit). Anda harus mengikuti sesi selanjutnya.`, 'error');
         return;
       }
 
       submitBtn.disabled = true;
       submitBtn.textContent = 'Memverifikasi password...';
-      showStatus('Memverifikasi ke server...', 'info');
+      showStatus('Memverifikasi sesi...', 'info');
 
-      // 1. Coba verifikasi via Google Apps Script jika online
       let verified = false;
-      let sessionName = "";
-      let packageId = "1";
+      let sessionName = status.activeSession ? status.activeSession.name : "Sesi Ujian";
+      let packageId = status.activeSession ? status.activeSession.paket : "1";
 
-      try {
-        // Cek LocalStorage config jika guru pernah custom password di pass.html
-        const localCustoms = localStorage.getItem('toefl_custom_passwords');
-        if (localCustoms) {
-          const list = JSON.parse(localCustoms);
-          const found = list.find(p => p.token.toUpperCase() === token && p.status === 'AKTIF');
-          if (found) {
-            verified = true;
-            sessionName = found.keterangan || "Sesi Khusus";
-            packageId = found.paket === "2" ? "2" : "1";
-          }
-        }
-
-        // Cek Fallback Built-in
-        if (!verified && FALLBACK_SESSIONS[token]) {
-          verified = true;
-          sessionName = FALLBACK_SESSIONS[token].name;
-          packageId = FALLBACK_SESSIONS[token].pkg;
-        }
-
-        // Jika online dan belum ketemu, coba ping Google Script
-        if (!verified && navigator.onLine) {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-          const gsUrl = localStorage.getItem('toefl_gs_url') || DEFAULT_GS_URL;
-          const fetchUrl = `${gsUrl}?action=check_password&token=${encodeURIComponent(token)}`;
-          
-          const response = await fetch(fetchUrl, { signal: controller.signal });
-          clearTimeout(timeoutId);
-          const result = await response.json();
-
-          if (result && result.status === 'success' && result.valid) {
-            verified = true;
-            sessionName = result.sessionName || "Sesi Ujian";
-            packageId = result.packageId === "2" ? "2" : "1";
-          }
-        }
-      } catch (err) {
-        console.warn("Server verification timeout/error, using fallback table:", err);
+      const schedules = getScheduleList();
+      const found = schedules.find(s => s.token.toUpperCase() === token && s.status === 'AKTIF');
+      if (found) {
+        verified = true;
+        sessionName = found.name;
+        packageId = found.paket || "1";
       }
 
       if (verified) {
         showStatus(`Password Valid! Memuat ruang ujian...`, 'success');
-        
-        // Simpan data sesi ke sessionStorage
         sessionStorage.setItem('toefl_session_password', token);
         sessionStorage.setItem('toefl_session_name', sessionName);
-        sessionStorage.setItem('toefl_package_id', packageId); // Siswa tidak diberi tahu di UI
-
-        // Simpan juga ke localStorage untuk recovery
+        sessionStorage.setItem('toefl_package_id', packageId);
         localStorage.setItem('toefl_session_password', token);
         localStorage.setItem('toefl_package_id', packageId);
 
         setTimeout(() => {
           window.location.href = 'test-toefl.html';
-        }, 800);
+        }, 500);
       } else {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<span>🚀</span> Verifikasi &amp; Masuk Lembar Soal TOEFL ➔';
-        showStatus('Password sesi salah atau belum diaktifkan. Silakan hubungi Pengawas Ruang!', 'error');
+        showStatus('Password sesi tidak cocok dengan jadwal aktif. Silakan hubungi Pengawas Ruang!', 'error');
       }
     }
 

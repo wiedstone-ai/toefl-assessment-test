@@ -3,114 +3,331 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TOEFL Assessment Test — Portal Asesmen Kemahiran Bahasa Inggris</title>
+  <title>Portal Resmi &amp; Informasi Jadwal — TOEFL Assessment Test</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    .portal-card {
-      max-width: 720px;
-      margin: 30px auto;
-      padding: 36px 32px;
+    .portal-wrapper {
+      max-width: 980px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+    .info-card {
       background: #ffffff;
       border-radius: 12px;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+      padding: 24px;
+      margin-bottom: 24px;
       border: 1.5px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
-    .spec-grid {
+    
+    /* Live Status Banner */
+    .status-banner {
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .banner-active {
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      color: #065f46;
+    }
+    .banner-late {
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+      color: #991b1b;
+    }
+    .banner-waiting {
+      background: #eff6ff;
+      border: 2px solid #3b82f6;
+      color: #1e40af;
+    }
+    
+    /* Schedule Grid */
+    .schedule-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
-      margin: 20px 0;
+      margin-top: 14px;
     }
-    .spec-item {
+    .schedule-card {
       background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 12px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 14px 12px;
+      text-align: center;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    .schedule-card.is-current {
+      background: #f0fdf4;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+    }
+    .schedule-card.is-current-late {
+      background: #fef2f2;
+      border-color: #ef4444;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+    }
+    .sched-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .sched-time {
+      font-family: monospace;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1d4ed8;
+      margin-bottom: 6px;
+    }
+    .sched-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-top: 4px;
+    }
+    .badge-ongoing {
+      background: #10b981;
+      color: white;
+    }
+    .badge-closed {
+      background: #ef4444;
+      color: white;
+    }
+    .badge-upcoming {
+      background: #e2e8f0;
+      color: #475569;
+    }
+    .badge-passed {
+      background: #e2e8f0;
+      color: #94a3b8;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .stat-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
       text-align: center;
     }
-    .spec-item .num {
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: #0f172a;
-    }
-    .spec-item .lbl {
+    .stat-label {
       font-size: 0.78rem;
+      font-weight: 700;
       color: #64748b;
-      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .stat-main {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+    .stat-sub {
+      font-size: 0.78rem;
+      color: #334155;
+      margin-top: 6px;
       font-weight: 600;
     }
-    @media (max-width: 600px) {
-      .spec-grid {
-        grid-template-columns: 1fr;
+    .stat-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #e0e7ff;
+      color: #3730a3;
+      margin-top: 4px;
+    }
+
+    /* Auto Token Input Box */
+    .token-display-box {
+      background: #fef3c7;
+      border: 2px dashed #f59e0b;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .token-code {
+      font-family: monospace;
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+      .schedule-grid, .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
-      .portal-card {
-        padding: 24px 18px;
+    }
+    @media (max-width: 480px) {
+      .schedule-grid, .stats-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Neutral Academic Header -->
+  <!-- Header -->
   <header>
     <div class="header-container">
       <div class="portal-brand">
         <div class="portal-logo-badge">ETS / ITP</div>
         <div class="brand-text">
           <h1>TOEFL ASSESSMENT TEST SYSTEM</h1>
-          <p>Institutional English Proficiency Evaluation — Standard Level 1</p>
+          <p>Institutional English Proficiency Evaluation — Standard Level 1 (140 Soal)</p>
         </div>
       </div>
       <div class="header-actions">
+        <span id="live-wib-clock" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 6px;">
+          --:--:-- WIB
+        </span>
         <a href="Kisi_Kisi_dan_Vocabulary_TOEFL_B1_Tingkat_XII.xlsx" download class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.4); font-size: 0.85rem;">
-          📥 Download Kisi-Kisi &amp; Kamus (.xlsx)
+          📥 Download Kisi-Kisi (.xlsx)
         </a>
       </div>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main>
-    <div class="portal-card">
-      
-      <!-- Notice Box: CEFR Level B1 Target & IELTS Equivalence -->
-      <div class="notice-box">
-        <div class="notice-icon">🎯</div>
+  <main class="portal-wrapper">
+
+    <!-- 1. LIVE SESSION STATUS BANNER -->
+    <div id="live-session-banner" class="status-banner banner-waiting">
+      <div style="font-size: 2rem;" id="banner-icon">⏳</div>
+      <div style="flex: 1;">
+        <h3 id="banner-title" style="font-size: 1.15rem; margin-bottom: 4px;">Memuat Status Sesi Ujian...</h3>
+        <p id="banner-desc" style="font-size: 0.9rem; line-height: 1.4;">
+          Sistem sedang memverifikasi jadwal aktif terhadap waktu server WIB.
+        </p>
+      </div>
+    </div>
+
+    <!-- 2. INFORMASI JADWAL UJIAN RESMI (3 JAM DENGAN GRACE PERIOD) -->
+    <div class="info-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <h3 style="font-size: 1.15rem; color: var(--primary-navy); display: flex; align-items: center; gap: 8px;">
+          <span>🗓️ Jadwal Pelaksanaan Asesmen TOEFL (Durasi 3 Jam Termasuk Grace Period)</span>
+        </h3>
+        <span style="font-size: 0.82rem; color: #64748b; font-weight: 600;">
+          Zona Waktu: Waktu Indonesia Barat (WIB)
+        </span>
+      </div>
+      <p style="font-size: 0.88rem; color: #475569; margin-top: 6px;">
+        Asesmen berlangsung dalam 4 sesi resmi berdurasi <strong>3 jam penuh</strong> (2 jam reguler + 1 jam <em>grace period</em>). Token ujian berlaku seragam untuk seluruh sekolah. Peserta wajib login tepat waktu, dengan batas toleransi keterlambatan maksimal <strong>1 jam (60 menit)</strong> dari jam mulai sesi.
+      </p>
+
+      <!-- Grid 4 Sesi -->
+      <div class="schedule-grid" id="schedule-cards-container">
+        <!-- Rendered by JavaScript -->
+      </div>
+
+      <div style="margin-top: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #475569; display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.2rem;">⚠️</span>
         <div>
-          <div class="notice-title">Target Standar Capaian Kelulusan (CEFR Level B1)</div>
-          <div class="notice-desc">
-            Asesmen ini menguji kemahiran bahasa Inggris standar akademik dengan target capaian minimum <strong>Level B1 (Independent User)</strong>, yang setara dengan <strong>Skor Prediksi TOEFL ITP minimal 433</strong> atau <strong>IELTS Band 4.5 – 5.0</strong> (Kriteria Ketuntasan Minimal / KKTP: <strong>75</strong>).
+          <strong>Aturan Toleransi Keterlambatan:</strong> Jika sesi telah berjalan <strong>1 jam atau lebih (≥ 60 menit)</strong> (misal setelah pukul 20.00 WIB untuk Sesi Malam), peserta dianggap terlambat dan akses masuk ujian otomatis <strong>DITOLAK</strong>. Peserta disarankan mengikuti sesi berikutnya.
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. STATISTIK SESI SEBELUMNYA -->
+    <div class="info-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <h3 style="font-size: 1.15rem; color: var(--primary-navy); display: flex; align-items: center; gap: 8px;">
+          <span>📊 Statistik Rekapitulasi Sesi Sebelumnya</span>
+        </h3>
+        <span id="stats-update-time" style="font-size: 0.78rem; color: #64748b; font-weight: 600;">
+          Sinkronisasi Otomatis Spreadsheet
+        </span>
+      </div>
+      <p style="font-size: 0.88rem; color: #475569; margin-top: 6px;">
+        Gambaran capaian peserta pada sesi sebelumnya sebagai tolok ukur kesiapan dan motivasi:
+      </p>
+
+      <div class="stats-grid">
+        <!-- Jumlah Peserta -->
+        <div class="stat-box">
+          <div class="stat-label">👥 Total Peserta Selesai</div>
+          <div class="stat-main" id="stat-total-peserta">--</div>
+          <div class="stat-sub">Siswa Terdata</div>
+          <div class="stat-badge" style="background:#e0f2fe; color:#0369a1;">Sesi Sebelumnya</div>
+        </div>
+
+        <!-- Nilai Tertinggi -->
+        <div class="stat-box">
+          <div class="stat-label">🏆 Nilai Tertinggi</div>
+          <div class="stat-main" style="color: #047857;" id="stat-highest-toefl">--</div>
+          <div class="stat-sub">Nilai Rapor: <strong id="stat-highest-scale">--</strong> / 100</div>
+          <div class="stat-badge" style="background:#ecfdf5; color:#065f46;" id="stat-highest-cefr">--</div>
+        </div>
+
+        <!-- Nilai Terendah -->
+        <div class="stat-box">
+          <div class="stat-label">📉 Nilai Terendah</div>
+          <div class="stat-main" style="color: #b91c1c;" id="stat-lowest-toefl">--</div>
+          <div class="stat-sub">Nilai Rapor: <strong id="stat-lowest-scale">--</strong> / 100</div>
+          <div class="stat-badge" style="background:#fef2f2; color:#991b1b;" id="stat-lowest-cefr">--</div>
+        </div>
+
+        <!-- Rata-Rata Nilai -->
+        <div class="stat-box">
+          <div class="stat-label">📈 Rata-Rata Nilai</div>
+          <div class="stat-main" style="color: #1d4ed8;" id="stat-avg-toefl">--</div>
+          <div class="stat-sub">Nilai Rapor: <strong id="stat-avg-scale">--</strong> / 100</div>
+          <div class="stat-badge" style="background:#eff6ff; color:#1e40af;" id="stat-avg-cefr">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. FORMULIR IDENTITAS & TOKEN OTOMATIS -->
+    <div class="info-card" id="form-card" style="border: 2px solid #cbd5e1;">
+      <h3 style="font-size: 1.25rem; color: var(--primary-navy); margin-bottom: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+        📝 Formulir Identitas &amp; Masuk Asesmen TOEFL
+      </h3>
+      <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 20px;">
+        Lengkapi identitas diri Anda dengan cermat sesuai data resmi presensi sekolah.
+      </p>
+
+      <!-- Kotak Password / Token Otomatis -->
+      <div id="token-box-wrapper" class="token-display-box">
+        <div>
+          <div style="font-size: 0.78rem; text-transform: uppercase; font-weight: 800; color: #92400e;">
+            🔑 Password / Token Sesi Aktif (Otomatis Terpasang)
+          </div>
+          <div style="font-size: 0.85rem; color: #78350f; margin-top: 2px;" id="token-session-name">
+            Sesi Sedang Berjalan
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <span class="token-code" id="display-auto-token">------</span>
+          <div style="font-size: 0.72rem; color: #92400e; font-weight: 700;" id="token-late-countdown">
+            Toleransi Aktif
           </div>
         </div>
       </div>
 
-      <!-- Test Structure Summary -->
-      <div class="spec-grid">
-        <div class="spec-item">
-          <div class="num">50 Soal</div>
-          <div class="lbl">Section 1: Listening Comprehension</div>
-        </div>
-        <div class="spec-item">
-          <div class="num">40 Soal</div>
-          <div class="lbl">Section 2: Structure &amp; Written Expr.</div>
-        </div>
-        <div class="spec-item">
-          <div class="num">50 Soal</div>
-          <div class="lbl">Section 3: Reading Comprehension</div>
-        </div>
-      </div>
-
-      <div style="text-align: center; margin: 18px 0 24px;">
-        <span style="font-size: 0.88rem; font-weight: 700; color: #475569; background: #f1f5f9; padding: 6px 16px; border-radius: 20px; border: 1px solid #cbd5e1;">
-          ⏱️ Total 140 Butir Soal | Alokasi Waktu Penuh: 115 Menit | Dual Scoring: TOEFL 310–677 &amp; Skala 1–100
-        </span>
-      </div>
-
-      <!-- Student Identity Form -->
-      <form id="portal-form" onsubmit="event.preventDefault(); goToVerification();">
-        <h3 style="font-size: 1.15rem; color: var(--primary-navy); margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
-          📝 Identitas Peserta Didik
-        </h3>
+      <form id="portal-form" onsubmit="event.preventDefault(); handleStartExam();">
+        <input type="hidden" id="input-token-auto" value="">
 
         <!-- Asal Sekolah -->
         <div class="form-group" style="margin-bottom: 16px;">
@@ -120,16 +337,17 @@
             <option value="SMK Negeri 2 Pati">SMK Negeri 2 Pati</option>
             <option value="SMA Negeri 1 Bae Kudus">SMA Negeri 1 Bae Kudus</option>
           </select>
+          <small style="color: #64748b;">Password sesi berlaku universal dan seragam untuk kedua sekolah.</small>
         </div>
 
         <div class="form-row">
-          <!-- Tingkat Kelas (Default XII) -->
+          <!-- Tingkat Kelas -->
           <div class="form-group">
             <label for="input-tingkat">Tingkat Kelas <span style="color:red;">*</span></label>
             <select id="input-tingkat" class="form-control" required>
-              <option value="X">Kelas X (Fase E)</option>
-              <option value="XI">Kelas XI (Fase F)</option>
               <option value="XII" selected>Kelas XII (Fase F+)</option>
+              <option value="XI">Kelas XI (Fase F)</option>
+              <option value="X">Kelas X (Fase E)</option>
             </select>
           </div>
 
@@ -184,17 +402,22 @@
         </div>
 
         <!-- Submit Button -->
-        <button type="submit" class="btn btn-primary btn-block" style="padding: 14px; font-size: 1.05rem; border-radius: 8px;">
-          Lanjut ke Verifikasi Password Sesi Ujian ➔
+        <button type="submit" id="btn-submit-exam" class="btn btn-primary btn-block" style="padding: 16px; font-size: 1.1rem; border-radius: 8px;">
+          🚀 Masuk &amp; Mulai Pengerjaan Soal TOEFL (140 Soal) ➔
         </button>
 
+        <div id="btn-disabled-notice" style="display: none; margin-top: 12px; text-align: center; color: #dc2626; font-size: 0.9rem; font-weight: 700;">
+          <!-- Populated when late or waiting -->
+        </div>
+
         <div style="text-align: center; margin-top: 18px;">
-          <a href="Kisi_Kisi_dan_Vocabulary_TOEFL_B1_Tingkat_XII.xlsx" download style="color: #2563eb; font-weight: 700; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px;">
-            📄 Unduh File Excel Kisi-Kisi Materi &amp; 120+ Kosakata TOEFL B1 untuk Belajar ➔
-          </a>
+          <span style="font-size: 0.85rem; color: #64748b;">
+            Standar: ETS TOEFL ITP Level 1 | 140 Butir Soal | Total Waktu: 3 Jam (Grace Period) | Skala 310–677 &amp; Rapor 1–100
+          </span>
         </div>
       </form>
     </div>
+
   </main>
 
   <!-- Footer -->
@@ -202,9 +425,12 @@
     <p><strong>TOEFL Assessment Test System</strong> — Institutional English Proficiency Assessment</p>
     <p style="font-size: 0.8rem; margin-top: 4px;">Kurikulum Merdeka — Fase F / Tingkat XII TP 2026/2027</p>
     <p style="font-size: 0.75rem; margin-top: 8px;">
-      <a href="pass.html" style="color: #94a3b8; text-decoration: none;">⚙️ Akses Manajemen Password &amp; Sesi Ujian (Khusus Guru/Pengawas)</a>
+      <a href="pass.html" style="color: #94a3b8; text-decoration: none;">⚙️ Akses Manajemen Jadwal &amp; Token (Khusus Guru/Pengawas)</a>
     </p>
   </footer>
+
+  <!-- Module Konfigurasi Jadwal Bersama -->
+  <script src="schedule-config.js"></script>
 
   <script>
     // Validasi presensi: angka 1 s.d. 36 tanpa awalan nol
@@ -218,33 +444,217 @@
       input.value = val;
     }
 
-    // Load data tersimpan jika siswa me-refresh
-    window.addEventListener('DOMContentLoaded', () => {
-      const saved = localStorage.getItem('toefl_student_info');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          if (data.sekolah) document.getElementById('input-sekolah').value = data.sekolah;
-          if (data.tingkat) document.getElementById('input-tingkat').value = data.tingkat;
-          if (data.keahlian) document.getElementById('input-keahlian').value = data.keahlian;
-          if (data.rombel) document.getElementById('input-rombel').value = data.rombel;
-          if (data.presensi) document.getElementById('input-presensi').value = data.presensi;
-          if (data.nama) document.getElementById('input-nama').value = data.nama;
-        } catch(e) {}
+    // Update Jam & Evaluasi Jadwal Setiap Detik
+    function tick() {
+      const wib = getWIBDate();
+      const clockEl = document.getElementById('live-wib-clock');
+      if (clockEl) {
+        clockEl.textContent = formatWIBTime(wib);
       }
-    });
+      refreshScheduleUI();
+    }
 
-    // Pindah ke verifikasi password sesi
-    function goToVerification() {
+    // Refresh Tampilan Jadwal & Status
+    function refreshScheduleUI() {
+      const status = evaluateCurrentSchedule();
+      const banner = document.getElementById('live-session-banner');
+      const icon = document.getElementById('banner-icon');
+      const title = document.getElementById('banner-title');
+      const desc = document.getElementById('banner-desc');
+      const tokenDisplay = document.getElementById('display-auto-token');
+      const tokenSessName = document.getElementById('token-session-name');
+      const tokenLateCount = document.getElementById('token-late-countdown');
+      const tokenHidden = document.getElementById('input-token-auto');
+      const submitBtn = document.getElementById('btn-submit-exam');
+      const noticeDiv = document.getElementById('btn-disabled-notice');
+      const tokenWrapper = document.getElementById('token-box-wrapper');
+
+      // 1. Logika Sesi Aktif
+      if (status.activeSession) {
+        const s = status.activeSession;
+        tokenHidden.value = s.token;
+        tokenDisplay.textContent = s.token;
+        tokenSessName.textContent = `${s.name} (${s.start} - ${s.end} WIB)`;
+
+        if (status.isLate) {
+          // TERLAMBAT >= 1 JAM (60 MENIT) -> DITOLAK
+          banner.className = 'status-banner banner-late';
+          icon.textContent = '⛔';
+          title.textContent = `AKSES UJIAN DITOLAK — TERLAMBAT ≥ 1 JAM (${s.name})`;
+          desc.innerHTML = `
+            Sesi <strong>${s.name}</strong> telah berlangsung selama <strong>${status.elapsedMinutes} menit</strong> (Dimulai pukul ${s.start} WIB).<br>
+            Batas toleransi keterlambatan maksimal <strong>1 jam (60 menit)</strong> telah berakhir. Demi menjaga kejujuran dan validitas asesmen, Anda <strong>tidak diperkenankan masuk</strong> ke lembar soal.<br>
+            👉 <strong>Saran:</strong> Silakan bersiap dan mengikuti sesi berikutnya: <strong>${status.nextSession ? status.nextSession.name + ' (' + status.nextSession.start + ' - ' + status.nextSession.end + ' WIB)' : 'Sesi Selanjutnya'}</strong>.
+          `;
+
+          tokenWrapper.style.background = '#fef2f2';
+          tokenWrapper.style.borderColor = '#ef4444';
+          tokenDisplay.style.color = '#b91c1c';
+          tokenLateCount.textContent = 'Akses Ditutup (Terlambat ≥ 1 Jam)';
+          tokenLateCount.style.color = '#b91c1c';
+
+          submitBtn.disabled = true;
+          submitBtn.className = 'btn btn-outline btn-block';
+          submitBtn.style.cursor = 'not-allowed';
+          submitBtn.style.opacity = '0.6';
+          submitBtn.textContent = '⛔ Akses Ditolak (Terlambat ≥ 1 Jam) — Silakan Ikuti Sesi Selanjutnya';
+
+          noticeDiv.style.display = 'block';
+          noticeDiv.textContent = `Mohon maaf, Anda terlambat ${status.elapsedMinutes} menit (≥ 1 jam). Silakan bergabung di sesi berikutnya: ${status.nextSession ? status.nextSession.name + ' jam ' + status.nextSession.start + ' WIB' : '-'}.`;
+
+        } else {
+          // MASIH BOLEH MASUK (< 1 JAM)
+          banner.className = 'status-banner banner-active';
+          icon.textContent = '🟢';
+          title.textContent = `SESI UJIAN AKTIF: ${s.name} (${s.start} - ${s.end} WIB)`;
+          desc.innerHTML = `
+            Sesi ujian sedang berlangsung (Total 3 Jam pengerjaan). Pintu masuk dibuka! Sisa waktu toleransi masuk: <strong>${status.remainingLateWindow} menit lagi</strong>.<br>
+            Token resmi (<strong>${s.token}</strong>) telah otomatis disematkan pada formulir pendaftaran di bawah ini.
+          `;
+
+          tokenWrapper.style.background = '#ecfdf5';
+          tokenWrapper.style.borderColor = '#10b981';
+          tokenDisplay.style.color = '#047857';
+          tokenLateCount.textContent = `Sisa Toleransi Masuk: ${status.remainingLateWindow} Menit`;
+          tokenLateCount.style.color = '#047857';
+
+          submitBtn.disabled = false;
+          submitBtn.className = 'btn btn-primary btn-block';
+          submitBtn.style.cursor = 'pointer';
+          submitBtn.style.opacity = '1';
+          submitBtn.textContent = '🚀 Masuk & Mulai Pengerjaan Soal TOEFL (140 Soal) ➔';
+
+          noticeDiv.style.display = 'none';
+        }
+      } else {
+        // BELUM ADA SESI BERJALAN (WAITING)
+        banner.className = 'status-banner banner-waiting';
+        icon.textContent = '⏳';
+        
+        let nextText = "Belum ada jadwal sesi.";
+        if (status.nextSession) {
+          nextText = `Sesi berikutnya: <strong>${status.nextSession.name}</strong> pukul <strong>${status.nextSession.start} - ${status.nextSession.end} WIB</strong> (Tersisa ${formatMinutes(status.minutesUntilNext)}).`;
+        }
+        title.textContent = 'BELUM ADA SESI UJIAN YANG DIBUKA';
+        desc.innerHTML = `Pintu ruang ujian dibuka tepat pada saat jam sesi dimulai. ${nextText} Token sesi akan otomatis muncul ketika waktu sesi telah tiba.`;
+
+        tokenWrapper.style.background = '#f1f5f9';
+        tokenWrapper.style.borderColor = '#94a3b8';
+        tokenDisplay.textContent = 'TERKUNCI';
+        tokenDisplay.style.color = '#64748b';
+        tokenSessName.textContent = status.nextSession ? `Menunggu: ${status.nextSession.name} (${status.nextSession.start} WIB)` : 'Tidak Ada Sesi Aktif';
+        tokenLateCount.textContent = 'Menunggu Jam Sesi';
+        tokenLateCount.style.color = '#64748b';
+
+        submitBtn.disabled = true;
+        submitBtn.className = 'btn btn-outline btn-block';
+        submitBtn.style.cursor = 'not-allowed';
+        submitBtn.style.opacity = '0.6';
+        submitBtn.textContent = `⏳ Belum Waktunya Sesi — Pintu Masuk Dibuka Pukul ${status.nextSession ? status.nextSession.start : '--:--'} WIB`;
+
+        noticeDiv.style.display = 'block';
+        noticeDiv.textContent = `Harap menunggu hingga jam sesi tiba. Halaman akan otomatis aktif saat jam masuk.`;
+      }
+
+      // 2. Render Cards Jadwal
+      renderScheduleCards(status);
+    }
+
+    // Render Grid 4 Sesi
+    function renderScheduleCards(status) {
+      const container = document.getElementById('schedule-cards-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const wib = getWIBDate();
+      const currentMinutes = wib.getHours() * 60 + wib.getMinutes();
+
+      status.allSchedules.forEach(s => {
+        const startM = timeToMinutes(s.start);
+        const endM = timeToMinutes(s.end);
+        const isCurrent = (status.activeSession && status.activeSession.id === s.id);
+        const isPast = (currentMinutes >= endM);
+        const isUpcoming = (currentMinutes < startM);
+
+        let cardClass = 'schedule-card';
+        let badgeHtml = '';
+
+        if (isCurrent) {
+          if (status.isLate) {
+            cardClass += ' is-current-late';
+            badgeHtml = `<span class="sched-badge badge-closed">BERJALAN (TUTUP: ≥1 Jam)</span>`;
+          } else {
+            cardClass += ' is-current';
+            badgeHtml = `<span class="sched-badge badge-ongoing">SEDANG BERJALAN</span>`;
+          }
+        } else if (isUpcoming) {
+          badgeHtml = `<span class="sched-badge badge-upcoming">AKAN DATANG</span>`;
+        } else {
+          badgeHtml = `<span class="sched-badge badge-passed">SELESAI HARI INI</span>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = cardClass;
+        card.innerHTML = `
+          <div class="sched-title">${s.name}</div>
+          <div class="sched-time">${s.start} - ${s.end} WIB</div>
+          <div style="font-size: 0.78rem; color: #475569; font-weight: 600;">Paket ${s.paket} | 3 Jam (Grace Period)</div>
+          ${badgeHtml}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Tampilkan Statistik Sesi Sebelumnya
+    function displayStats() {
+      const stats = getPreviousStats();
+      if (!stats) return;
+
+      document.getElementById('stat-total-peserta').textContent = stats.totalPeserta || '68';
+      
+      if (stats.highest) {
+        document.getElementById('stat-highest-toefl').textContent = stats.highest.toefl || '577';
+        document.getElementById('stat-highest-scale').textContent = stats.highest.scale100 || '89';
+        document.getElementById('stat-highest-cefr').textContent = stats.highest.cefr || 'Level B2 (Vantage)';
+      }
+
+      if (stats.lowest) {
+        document.getElementById('stat-lowest-toefl').textContent = stats.lowest.toefl || '347';
+        document.getElementById('stat-lowest-scale').textContent = stats.lowest.scale100 || '36';
+        document.getElementById('stat-lowest-cefr').textContent = stats.lowest.cefr || 'Level A1-A2 (Elementary)';
+      }
+
+      if (stats.average) {
+        document.getElementById('stat-avg-toefl').textContent = stats.average.toefl || '462';
+        document.getElementById('stat-avg-scale').textContent = stats.average.scale100 || '72';
+        document.getElementById('stat-avg-cefr').textContent = stats.average.cefr || 'Level B1 (KKTP 75)';
+      }
+    }
+
+    // Eksekusi Mulai Ujian
+    function handleStartExam() {
+      const status = evaluateCurrentSchedule();
+      if (!status.activeSession) {
+        alert("Sesi ujian belum dibuka. Silakan tunggu hingga jam sesi dimulai!");
+        return;
+      }
+
+      if (status.isLate) {
+        alert(`Akses Ditolak!\nSesi ${status.activeSession.name} telah berjalan lebih dari 1 jam (60 menit).\nBatas toleransi keterlambatan telah berakhir.\nSilakan mengikuti sesi berikutnya.`);
+        return;
+      }
+
       const sekolah = document.getElementById('input-sekolah').value;
       const tingkat = document.getElementById('input-tingkat').value;
       const keahlian = document.getElementById('input-keahlian').value;
       const rombel = document.getElementById('input-rombel').value;
       const presensi = document.getElementById('input-presensi').value.trim();
       const nama = document.getElementById('input-nama').value.trim();
+      const token = status.activeSession.token;
+      const packageId = status.activeSession.paket || "1";
 
       if (!sekolah || !tingkat || !keahlian || !rombel || !presensi || !nama) {
-        alert("Harap lengkapi seluruh kolom identitas peserta didik!");
+        alert("Harap lengkapi semua kolom identitas peserta didik!");
         return;
       }
 
@@ -257,12 +667,48 @@
         nama
       };
 
-      // Simpan ke localStorage dan sessionStorage
+      // Simpan data peserta dan sesi aktif
       localStorage.setItem('toefl_student_info', JSON.stringify(studentInfo));
       sessionStorage.setItem('toefl_student_info', JSON.stringify(studentInfo));
 
-      window.location.href = 'masuk-toefl.html';
+      localStorage.setItem('toefl_session_password', token);
+      sessionStorage.setItem('toefl_session_password', token);
+
+      localStorage.setItem('toefl_package_id', packageId);
+      sessionStorage.setItem('toefl_package_id', packageId);
+
+      sessionStorage.setItem('toefl_session_name', status.activeSession.name);
+
+      // Langsung masuk ke lembar ujian resmi
+      window.location.href = 'test-toefl.html';
     }
+
+    // Inisialisasi Saat Halaman Dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. Muat info tersimpan jika ada
+      const saved = localStorage.getItem('toefl_student_info');
+      if (saved) {
+        try {
+          const d = JSON.parse(saved);
+          if (d.sekolah) document.getElementById('input-sekolah').value = d.sekolah;
+          if (d.tingkat) document.getElementById('input-tingkat').value = d.tingkat;
+          if (d.keahlian) document.getElementById('input-keahlian').value = d.keahlian;
+          if (d.rombel) document.getElementById('input-rombel').value = d.rombel;
+          if (d.presensi) document.getElementById('input-presensi').value = d.presensi;
+          if (d.nama) document.getElementById('input-nama').value = d.nama;
+        } catch(e) {}
+      }
+
+      // 2. Tampilkan statistik baseline dan coba sync dari server
+      displayStats();
+      fetchStatsFromServer((newStats) => {
+        displayStats();
+      });
+
+      // 3. Jalankan clock & evaluasi jadwal
+      tick();
+      setInterval(tick, 1000);
+    });
   </script>
 </body>
 </html>
