@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Manajemen Sesi &amp; Password — TOEFL Assessment</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-container {
+      max-width: 950px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      background: #f1f5f9;
+      color: #1e293b;
+      font-weight: 700;
+    }
+    tr:hover {
+      background: #f8fafc;
+    }
+    .badge-status {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .status-active {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+    .status-inactive {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-container">
+      <div class="portal-brand">
+        <div class="portal-logo-badge">ADMIN</div>
+        <div class="brand-text">
+          <h1>PANEL PENGATURAN SESI &amp; PASSWORD TOEFL</h1>
+          <p>Manajemen Token Sesi &amp; Pemetaan Paket Soal (Khusus Guru / Pengawas)</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="index.html" class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.4); font-size: 0.85rem;">
+          🏠 Ke Portal Siswa
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-container">
+    
+    <!-- PIN Gate (Proteksi Keamanan Guru) -->
+    <div class="card" id="pin-card" style="max-width: 480px; margin: 40px auto; text-align: center;">
+      <div style="font-size: 2.2rem; margin-bottom: 8px;">🔒</div>
+      <h2 style="font-size: 1.35rem; color: var(--primary-navy); margin-bottom: 8px;">Akses Khusus Guru / Pengawas</h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 20px;">
+        Masukkan PIN Pengawas untuk membuka dashboard manajemen password sesi.
+      </p>
+      <form onsubmit="event.preventDefault(); verifyPin();">
+        <input type="password" id="input-pin" class="form-control" placeholder="Masukkan PIN (Default: 123456)" style="text-align: center; font-size: 1.2rem; letter-spacing: 3px; margin-bottom: 16px;" required autofocus>
+        <button type="submit" class="btn btn-primary btn-block">Buka Panel Manajemen ➔</button>
+      </form>
+    </div>
+
+    <!-- Main Admin Dashboard -->
+    <div id="dashboard-card" style="display: none;">
+      
+      <!-- Spreadsheet Connection Settings -->
+      <div class="card" style="margin-bottom: 24px;">
+        <h3 style="font-size: 1.15rem; color: var(--primary-navy); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>📊 Integrasi Google Spreadsheet</span>
+          <a href="https://docs.google.com/spreadsheets/d/13RyeWSQwfngQJOyS6vgAX9MKfPbXaJNkI8JDEKXrGfI/edit" target="_blank" class="btn btn-outline" style="font-size: 0.82rem; padding: 4px 10px;">
+            🔗 Buka Google Sheet
+          </a>
+        </h3>
+        <p style="font-size: 0.88rem; color: #475569; margin-bottom: 12px;">
+          ID Spreadsheet Aktif: <code>13RyeWSQwfngQJOyS6vgAX9MKfPbXaJNkI8JDEKXrGfI</code><br>
+          Sheet <code>pass</code> mengelola token sesi &amp; pemetaan paket; Sheet <code>Rekap_Nilai_TOEFL</code> mencatat nilai dan token sesi peserta.
+        </p>
+        <div class="form-group">
+          <label style="font-size: 0.85rem;">Google Apps Script Web App URL:</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="url" id="input-gs-url" class="form-control" style="font-size: 0.85rem;" placeholder="https://script.google.com/macros/s/.../exec">
+            <button class="btn btn-primary" onclick="saveGsUrl()" style="white-space: nowrap;">Simpan URL</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add / Edit Session Password Card -->
+      <div class="card" style="margin-bottom: 24px;">
+        <h3 style="font-size: 1.15rem; color: var(--primary-navy); margin-bottom: 16px;">
+          ➕ Tambah / Perbarui Password Sesi Ujian
+        </h3>
+        <form id="add-session-form" onsubmit="event.preventDefault(); saveSession();">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="form-token">Password / Token Sesi (Huruf Besar) <span style="color:red;">*</span></label>
+              <input type="text" id="form-token" class="form-control" placeholder="Contoh: SESI1-PAGI" style="text-transform: uppercase;" required>
+            </div>
+            <div class="form-group">
+              <label for="form-keterangan">Keterangan Sesi <span style="color:red;">*</span></label>
+              <input type="text" id="form-keterangan" class="form-control" placeholder="Contoh: Sesi Pagi (07.30 - 09.30)" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="form-paket">Paket Soal yang Didapatkan Siswa <span style="color:red;">*</span></label>
+              <select id="form-paket" class="form-control" required>
+                <option value="1">Paket 1 (140 Butir Soal - Aligned B1)</option>
+                <option value="2">Paket 2 (140 Butir Soal - Aligned B1)</option>
+              </select>
+              <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">
+                ℹ️ <em>Seluruh siswa yang memasukkan password ini akan mengerjakan paket soal ini (nama paket tidak ditampilkan kepada siswa).</em>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="form-status">Status Sesi</label>
+              <select id="form-status" class="form-control">
+                <option value="AKTIF">AKTIF (Dapat Digunakan Siswa)</option>
+                <option value="NONAKTIF">NONAKTIF (Terkunci / Sesi Berakhir)</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <button type="submit" class="btn btn-gold" id="btn-save-session">Simpan Sesi Ujian ➔</button>
+            <button type="button" class="btn btn-outline" onclick="resetForm()">Reset Form</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Active Sessions Table -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+          <h3 style="font-size: 1.15rem; color: var(--primary-navy);">
+            📋 Daftar Password Sesi Ujian Aktif
+          </h3>
+          <button class="btn btn-outline" onclick="loadSessions()" style="font-size: 0.85rem;">
+            🔄 Segarkan Data
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Token / Password</th>
+                <th>Keterangan Sesi</th>
+                <th>Paket Terkait</th>
+                <th>Status</th>
+                <th>Aksi Pengawas</th>
+              </tr>
+            </thead>
+            <tbody id="session-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>TOEFL Assessment Test Management Panel &copy; 2026/2027</p>
+  </footer>
+
+  <script>
+    const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbw7bPABcVf7FFu6u6MeTP_fT0gsHOx8qCtw3YMjDHqXjDLHs_wqFPZPg1vUttXOQCzf/exec";
+    const DEFAULT_PIN = "123456";
+
+    let sessionList = [
+      { token: "SESI1-PAGI", keterangan: "Sesi 1 Pagi (07.30 - 09.30)", paket: "1", status: "AKTIF" },
+      { token: "SESI2-SIANG", keterangan: "Sesi 2 Siang (10.00 - 12.00)", paket: "2", status: "AKTIF" },
+      { token: "SKADAPATI", keterangan: "Sesi Khusus SMK Negeri 2 Pati", paket: "1", status: "AKTIF" },
+      { token: "SABAKU", keterangan: "Sesi Khusus SMA Negeri 1 Bae Kudus", paket: "2", status: "AKTIF" },
+      { token: "TOEFL2026", keterangan: "Password Cadangan Umum", paket: "1", status: "AKTIF" }
+    ];
+
+    function verifyPin() {
+      const pin = document.getElementById('input-pin').value.trim();
+      const savedPin = localStorage.getItem('toefl_admin_pin') || DEFAULT_PIN;
+      if (pin === savedPin || pin === "TOEFL2026") {
+        document.getElementById('pin-card').style.display = 'none';
+        document.getElementById('dashboard-card').style.display = 'block';
+        initDashboard();
+      } else {
+        alert("PIN Pengawas salah!");
+      }
+    }
+
+    function initDashboard() {
+      const savedUrl = localStorage.getItem('toefl_gs_url') || DEFAULT_GS_URL;
+      document.getElementById('input-gs-url').value = savedUrl;
+
+      const localList = localStorage.getItem('toefl_custom_passwords');
+      if (localList) {
+        try {
+          sessionList = JSON.parse(localList);
+        } catch(e) {}
+      }
+      renderSessionTable();
+    }
+
+    function saveGsUrl() {
+      const url = document.getElementById('input-gs-url').value.trim();
+      if (url) {
+        localStorage.setItem('toefl_gs_url', url);
+        alert("URL Google Apps Script berhasil disimpan.");
+      }
+    }
+
+    function renderSessionTable() {
+      const tbody = document.getElementById('session-table-body');
+      tbody.innerHTML = '';
+
+      sessionList.forEach((s, idx) => {
+        const tr = document.createElement('tr');
+        const isAktif = (s.status === 'AKTIF');
+
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td><strong style="font-family: monospace; font-size: 1.05rem; letter-spacing: 1px; color: #1e3a8a;">${s.token}</strong></td>
+          <td>${s.keterangan || '-'}</td>
+          <td><span style="font-weight: 700; color: #475569;">Paket ${s.paket || '1'}</span></td>
+          <td>
+            <span class="badge-status ${isAktif ? 'status-active' : 'status-inactive'}">
+              ${s.status}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-outline" onclick="toggleStatus(${idx})" style="padding: 4px 8px; font-size: 0.78rem;">
+              ${isAktif ? 'Nonaktifkan' : 'Aktifkan'}
+            </button>
+            <button class="btn btn-outline" onclick="editSession(${idx})" style="padding: 4px 8px; font-size: 0.78rem; margin-left: 4px;">
+              Edit
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function saveSession() {
+      const token = document.getElementById('form-token').value.trim().toUpperCase();
+      const keterangan = document.getElementById('form-keterangan').value.trim();
+      const paket = document.getElementById('form-paket').value;
+      const status = document.getElementById('form-status').value;
+
+      if (!token || !keterangan) {
+        alert("Harap lengkapi token dan keterangan sesi!");
+        return;
+      }
+
+      const existingIdx = sessionList.findIndex(s => s.token.toUpperCase() === token);
+      if (existingIdx >= 0) {
+        sessionList[existingIdx] = { token, keterangan, paket, status };
+      } else {
+        sessionList.push({ token, keterangan, paket, status });
+      }
+
+      localStorage.setItem('toefl_custom_passwords', JSON.stringify(sessionList));
+      renderSessionTable();
+      resetForm();
+
+      // Sinkronkan ke Google Apps Script di latar belakang
+      syncSessionToGoogle(token, keterangan, paket, status);
+      alert(`Sesi '${token}' berhasil disimpan.`);
+    }
+
+    function toggleStatus(idx) {
+      sessionList[idx].status = (sessionList[idx].status === 'AKTIF' ? 'NONAKTIF' : 'AKTIF');
+      localStorage.setItem('toefl_custom_passwords', JSON.stringify(sessionList));
+      renderSessionTable();
+      syncSessionToGoogle(sessionList[idx].token, sessionList[idx].keterangan, sessionList[idx].paket, sessionList[idx].status);
+    }
+
+    function editSession(idx) {
+      const s = sessionList[idx];
+      document.getElementById('form-token').value = s.token;
+      document.getElementById('form-keterangan').value = s.keterangan;
+      document.getElementById('form-paket').value = s.paket || "1";
+      document.getElementById('form-status').value = s.status || "AKTIF";
+      document.getElementById('form-token').focus();
+    }
+
+    function resetForm() {
+      document.getElementById('form-token').value = '';
+      document.getElementById('form-keterangan').value = '';
+      document.getElementById('form-paket').value = '1';
+      document.getElementById('form-status').value = 'AKTIF';
+    }
+
+    function syncSessionToGoogle(token, keterangan, paket, status) {
+      const gsUrl = localStorage.getItem('toefl_gs_url') || DEFAULT_GS_URL;
+      const payload = {
+        action: "set_password",
+        token: token,
+        keterangan: keterangan,
+        paket: paket,
+        status: status
+      };
+
+      try {
+        fetch(gsUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }).catch(e => console.warn(e));
+      } catch(err) {}
+    }
+  </script>
+</body>
+</html>

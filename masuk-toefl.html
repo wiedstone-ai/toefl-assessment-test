@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifikasi Password Sesi TOEFL — TOEFL Assessment Test</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .auth-card {
+      max-width: 580px;
+      margin: 36px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      border: 1.5px solid #e2e8f0;
+      padding: 32px 28px;
+    }
+    .student-badge-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .password-field {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-align: center;
+      padding: 12px;
+      text-transform: uppercase;
+      border: 2px solid #2563eb;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    .password-field:focus {
+      border-color: #1d4ed8;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+      outline: none;
+    }
+    .status-msg {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-top: 14px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Neutral Academic Header -->
+  <header>
+    <div class="header-container">
+      <div class="portal-brand">
+        <div class="portal-logo-badge">ETS / ITP</div>
+        <div class="brand-text">
+          <h1>TOEFL ASSESSMENT TEST SYSTEM</h1>
+          <p>Otentikasi &amp; Verifikasi Sesi Ujian Resmi</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="index.html" class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.4); font-size: 0.85rem;">
+          🏠 Kembali ke Portal
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <div class="auth-card">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 2.2rem; margin-bottom: 6px;">🔐</div>
+        <h2 style="color: var(--primary-navy); font-size: 1.45rem;">Verifikasi Password Sesi Ujian</h2>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 4px;">
+          Masukkan token / password sesi yang dibagikan oleh Pengawas Ruang.
+        </p>
+      </div>
+
+      <!-- Student Identification Badge -->
+      <div class="student-badge-box">
+        <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 700;">
+          Identitas Peserta Terdaftar:
+        </div>
+        <div style="font-size: 1.1rem; font-weight: 800; color: #0f172a;" id="display-nama">
+          Nama Siswa
+        </div>
+        <div style="font-size: 0.88rem; color: #334155;" id="display-meta">
+          Sekolah | Kelas | Rombel | No. Presensi
+        </div>
+        <div style="margin-top: 6px;">
+          <a href="index.html" style="font-size: 0.8rem; color: #2563eb; text-decoration: underline; font-weight: 600;">
+            ✏️ Ubah Data Identitas
+          </a>
+        </div>
+      </div>
+
+      <!-- Password Input Form -->
+      <form id="auth-form" onsubmit="event.preventDefault(); verifyPassword();">
+        <div class="form-group">
+          <label for="input-token" style="font-weight: 700; color: var(--secondary-navy); display: flex; justify-content: space-between;">
+            <span>Password / Token Sesi</span>
+            <span style="font-weight: normal; font-size: 0.8rem; color: #64748b;">(Huruf Besar)</span>
+          </label>
+          <input type="text" id="input-token" class="password-field" placeholder="CONTOH: SESI1-PAGI" required autocomplete="off" autofocus>
+        </div>
+
+        <div style="margin-top: 22px;">
+          <button type="submit" id="btn-submit-token" class="btn btn-gold btn-block" style="padding: 14px; font-size: 1.05rem;">
+            <span>🚀</span> Verifikasi &amp; Masuk Lembar Soal TOEFL ➔
+          </button>
+        </div>
+
+        <!-- Status Message Box -->
+        <div id="status-box" class="status-msg"></div>
+
+        <div style="margin-top: 20px; font-size: 0.82rem; color: #64748b; line-height: 1.5; text-align: center; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          ℹ️ <em>Siswa pada sesi yang sama akan otomatis menempuh paket soal yang seragam. Password sesi ini akan dicatat dalam database rekapitulasi nilai guru.</em>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>TOEFL Assessment Test System &copy; 2026/2027</p>
+  </footer>
+
+  <script>
+    // Default Google Apps Script URL (bila dihubungkan ke Web App)
+    const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbw7bPABcVf7FFu6u6MeTP_fT0gsHOx8qCtw3YMjDHqXjDLHs_wqFPZPg1vUttXOQCzf/exec";
+
+    // Fallback Table untuk Offline/Lokal
+    const FALLBACK_SESSIONS = {
+      "SESI1-PAGI": { name: "Sesi 1 Pagi (07.30 - 09.30)", pkg: "1" },
+      "SESI2-SIANG": { name: "Sesi 2 Siang (10.00 - 12.00)", pkg: "2" },
+      "SKADAPATI": { name: "Sesi Khusus SMK Negeri 2 Pati", pkg: "1" },
+      "SABAKU": { name: "Sesi Khusus SMA Negeri 1 Bae Kudus", pkg: "2" },
+      "TOEFL2026": { name: "Sesi Cadangan Umum", pkg: "1" },
+      "ALL": { name: "Password Umum Semua Sesi", pkg: "1" }
+    };
+
+    let studentData = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // Ambil data siswa dari sessionStorage atau localStorage
+      const raw = sessionStorage.getItem('toefl_student_info') || localStorage.getItem('toefl_student_info');
+      if (!raw) {
+        alert("Data identitas peserta didik belum diisi. Silakan lengkapi di halaman awal.");
+        window.location.href = 'index.html';
+        return;
+      }
+
+      studentData = JSON.parse(raw);
+      document.getElementById('display-nama').textContent = studentData.nama || "-";
+      document.getElementById('display-meta').textContent = 
+        `${studentData.sekolah} | Kelas ${studentData.tingkat} | Keahlian ${studentData.keahlian} | Rombel ${studentData.rombel} | Presensi ${studentData.presensi}`;
+    });
+
+    async function verifyPassword() {
+      const inputEl = document.getElementById('input-token');
+      const token = inputEl.value.trim().toUpperCase();
+      const statusBox = document.getElementById('status-box');
+      const submitBtn = document.getElementById('btn-submit-token');
+
+      if (!token) {
+        showStatus('Harap masukkan password sesi!', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Memverifikasi password...';
+      showStatus('Memverifikasi ke server...', 'info');
+
+      // 1. Coba verifikasi via Google Apps Script jika online
+      let verified = false;
+      let sessionName = "";
+      let packageId = "1";
+
+      try {
+        // Cek LocalStorage config jika guru pernah custom password di pass.html
+        const localCustoms = localStorage.getItem('toefl_custom_passwords');
+        if (localCustoms) {
+          const list = JSON.parse(localCustoms);
+          const found = list.find(p => p.token.toUpperCase() === token && p.status === 'AKTIF');
+          if (found) {
+            verified = true;
+            sessionName = found.keterangan || "Sesi Khusus";
+            packageId = found.paket === "2" ? "2" : "1";
+          }
+        }
+
+        // Cek Fallback Built-in
+        if (!verified && FALLBACK_SESSIONS[token]) {
+          verified = true;
+          sessionName = FALLBACK_SESSIONS[token].name;
+          packageId = FALLBACK_SESSIONS[token].pkg;
+        }
+
+        // Jika online dan belum ketemu, coba ping Google Script
+        if (!verified && navigator.onLine) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+          const gsUrl = localStorage.getItem('toefl_gs_url') || DEFAULT_GS_URL;
+          const fetchUrl = `${gsUrl}?action=check_password&token=${encodeURIComponent(token)}`;
+          
+          const response = await fetch(fetchUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          const result = await response.json();
+
+          if (result && result.status === 'success' && result.valid) {
+            verified = true;
+            sessionName = result.sessionName || "Sesi Ujian";
+            packageId = result.packageId === "2" ? "2" : "1";
+          }
+        }
+      } catch (err) {
+        console.warn("Server verification timeout/error, using fallback table:", err);
+      }
+
+      if (verified) {
+        showStatus(`Password Valid! Memuat ruang ujian...`, 'success');
+        
+        // Simpan data sesi ke sessionStorage
+        sessionStorage.setItem('toefl_session_password', token);
+        sessionStorage.setItem('toefl_session_name', sessionName);
+        sessionStorage.setItem('toefl_package_id', packageId); // Siswa tidak diberi tahu di UI
+
+        // Simpan juga ke localStorage untuk recovery
+        localStorage.setItem('toefl_session_password', token);
+        localStorage.setItem('toefl_package_id', packageId);
+
+        setTimeout(() => {
+          window.location.href = 'test-toefl.html';
+        }, 800);
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>🚀</span> Verifikasi &amp; Masuk Lembar Soal TOEFL ➔';
+        showStatus('Password sesi salah atau belum diaktifkan. Silakan hubungi Pengawas Ruang!', 'error');
+      }
+    }
+
+    function showStatus(text, type) {
+      const box = document.getElementById('status-box');
+      box.style.display = 'block';
+      box.textContent = text;
+      if (type === 'error') {
+        box.style.background = '#fef2f2';
+        box.style.color = '#991b1b';
+        box.style.border = '1px solid #fecaca';
+      } else if (type === 'success') {
+        box.style.background = '#ecfdf5';
+        box.style.color = '#065f46';
+        box.style.border = '1px solid #a7f3d0';
+      } else {
+        box.style.background = '#eff6ff';
+        box.style.color = '#1e40af';
+        box.style.border = '1px solid #bfdbfe';
+      }
+    }
+  </script>
+</body>
+</html>

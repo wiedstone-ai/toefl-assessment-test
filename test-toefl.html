@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asesmen Resmi TOEFL — TOEFL Assessment Test</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Specific Test View Styles */
+    .reading-split-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .reading-split-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .autosave-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #059669;
+      background: #ecfdf5;
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid #a7f3d0;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Neutral Header Navigation -->
+  <header>
+    <div class="header-container">
+      <div class="portal-brand">
+        <div class="portal-logo-badge">TOEFL</div>
+        <div class="brand-text">
+          <h1>TOEFL ASSESSMENT TEST</h1>
+          <p>Tingkat XII (Fase F+) — Standar Evaluasi Akademik 140 Butir Soal</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="autosave-badge" id="autosave-indicator">
+          <span>💾</span> Tersimpan Otomatis
+        </span>
+        <div class="timer-box" id="timer-box">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span id="timer-display">115:00</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Exam Area -->
+  <main>
+    <!-- Section Switcher Navigation Tabs -->
+    <div class="section-nav-container">
+      <button class="section-tab-btn active" id="tab-sec-1" onclick="switchSectionTab(1)">
+        <span>🎧 Section 1: Listening</span>
+        <span class="badge-count" id="count-sec-1">0 / 50</span>
+      </button>
+      <button class="section-tab-btn" id="tab-sec-2" onclick="switchSectionTab(2)">
+        <span>✏️ Section 2: Structure &amp; Written</span>
+        <span class="badge-count" id="count-sec-2">0 / 40</span>
+      </button>
+      <button class="section-tab-btn" id="tab-sec-3" onclick="switchSectionTab(3)">
+        <span>📖 Section 3: Reading</span>
+        <span class="badge-count" id="count-sec-3">0 / 50</span>
+      </button>
+    </div>
+
+    <!-- Main Exam Grid Layout -->
+    <div class="exam-layout">
+      
+      <!-- Left Column: Active Question & Stimulus -->
+      <div class="question-container">
+        <div class="card" id="question-card">
+          
+          <!-- Top Metadata Header -->
+          <div class="question-header">
+            <div class="q-meta">
+              <span class="q-number-pill" id="q-number-badge">Soal No. 1 dari 140</span>
+              <span class="q-section-pill" id="q-section-badge">Section 1: Listening Comprehension</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn btn-outline" id="btn-flag-q" onclick="toggleFlagCurrentQuestion()" style="padding: 6px 14px; font-size: 0.85rem;">
+                🟡 Ragu-ragu
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 1: Listening Audio Player Card -->
+          <div class="audio-player-card" id="listening-box" style="display: none;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">
+              🎧 Audio Listening Section (Native North American Accent)
+            </div>
+            <div class="audio-controls">
+              <button class="btn-play-audio" id="btn-play-audio" onclick="playCurrentAudio()">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <span id="play-btn-text">Putar Audio Listening</span>
+              </button>
+              <button class="btn btn-outline" onclick="toggleAudioSpeed()" style="padding: 8px 12px; font-size: 0.85rem;" title="Kecepatan Audio">
+                ⚡ <span id="speed-label">1.0x</span>
+              </button>
+              <span class="audio-status-text" id="audio-status-msg">
+                Klik 'Putar Audio' untuk mendengarkan dialog/monolog.
+              </span>
+            </div>
+          </div>
+
+          <!-- Section 3: Reading Passage Stimulus View (Split Layout) -->
+          <div id="reading-passage-wrapper" style="display: none;">
+            <div class="stimulus-card" id="stimulus-container">
+              <div class="stimulus-title" id="stimulus-title">Teks Bacaan</div>
+              <div class="stimulus-source" id="stimulus-source">Sumber Otentik</div>
+              <div class="stimulus-body" id="stimulus-body"></div>
+            </div>
+          </div>
+
+          <!-- Question Prompt Text -->
+          <div class="question-prompt" id="question-prompt-text">
+            Pertanyaan soal sedang dimuat...
+          </div>
+
+          <!-- Options Container -->
+          <div class="options-grid" id="options-container">
+            <!-- Options dynamically injected via JS -->
+          </div>
+
+          <!-- Action Buttons Bar -->
+          <div class="q-actions-bar">
+            <button class="btn btn-outline" id="btn-prev-q" onclick="navigateQuestion(-1)">
+              ◀ Soal Sebelumnya
+            </button>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary" id="btn-next-q" onclick="navigateQuestion(1)">
+                Soal Berikutnya ▶
+              </button>
+              <button class="btn btn-gold" onclick="openConfirmSubmitModal()" style="font-weight: 800;">
+                Selesai &amp; Kirim Ujian ➔
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right Column: Navigation Grid Sidebar -->
+      <div class="nav-sidebar">
+        <div class="nav-grid-box">
+          <div class="nav-grid-header">
+            <span>Daftar Nomor Soal</span>
+            <span id="answered-counter" style="color: #059669; font-weight: 800;">0 / 140 Terjawab</span>
+          </div>
+
+          <!-- Legend -->
+          <div class="nav-legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background: #0f172a; border: 1px solid #d97706;"></div>
+              <span>Aktif</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background: #ecfdf5; border: 1px solid #10b981;"></div>
+              <span>Dijawab</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background: #fef3c7; border: 1px solid #f59e0b;"></div>
+              <span>Ragu</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background: #ffffff; border: 1px solid #cbd5e1;"></div>
+              <span>Kosong</span>
+            </div>
+          </div>
+
+          <!-- Quick Section Filter Buttons -->
+          <div style="display: flex; gap: 4px; margin-bottom: 12px;">
+            <button class="btn btn-outline" onclick="filterNavGrid('all')" style="flex: 1; padding: 4px 6px; font-size: 0.75rem;">Semua</button>
+            <button class="btn btn-outline" onclick="filterNavGrid('sec1')" style="flex: 1; padding: 4px 6px; font-size: 0.75rem;">Sec 1</button>
+            <button class="btn btn-outline" onclick="filterNavGrid('sec2')" style="flex: 1; padding: 4px 6px; font-size: 0.75rem;">Sec 2</button>
+            <button class="btn btn-outline" onclick="filterNavGrid('sec3')" style="flex: 1; padding: 4px 6px; font-size: 0.75rem;">Sec 3</button>
+          </div>
+
+          <!-- 140 Numbers Grid -->
+          <div class="q-grid" id="questions-grid-container">
+            <!-- 140 buttons injected via JS -->
+          </div>
+
+          <div style="margin-top: 16px;">
+            <button class="btn btn-gold btn-block" onclick="openConfirmSubmitModal()" style="padding: 12px; font-size: 0.95rem;">
+              <span>🏁</span> Selesai &amp; Kirim Jawaban
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Submit Confirmation Modal -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-content" style="max-width: 480px;">
+      <h3 style="color: var(--primary-navy); font-size: 1.3rem; margin-bottom: 12px;">Konfirmasi Pengiriman Ujian</h3>
+      <div id="confirm-summary-text" style="font-size: 0.95rem; color: #334155; line-height: 1.6; margin-bottom: 20px;">
+        Apakah Anda yakin ingin menyelesaikan dan mengirimkan asesmen TOEFL ini?
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn btn-outline" onclick="closeConfirmModal()">Lanjut Mengerjakan</button>
+        <button class="btn btn-gold" id="btn-final-submit" onclick="executeFinalSubmission()">
+          Ya, Kirim Sekarang!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Score Certificate Modal -->
+  <div class="modal-overlay" id="score-modal">
+    <div class="modal-content" style="max-width: 600px; text-align: center;">
+      <div style="font-size: 2.5rem; margin-bottom: 6px;">🎓</div>
+      <h2 style="color: var(--primary-navy); font-size: 1.5rem;">Hasil Prediksi TOEFL Assessment</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px;">
+        Institutional English Proficiency Evaluation Report (CEFR Aligned)
+      </p>
+
+      <div class="score-badge-circle">
+        <div class="num" id="cert-total-toefl">---</div>
+        <div class="sub">PREDIKSI TOEFL ITP</div>
+      </div>
+
+      <div id="cert-cefr-badge" class="cefr-pill cefr-b1">
+        Memenuhi Target B1 (Independent User)
+      </div>
+
+      <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a; margin: 10px 0;">
+        Nilai Rapor Sekolah: <span id="cert-grade-100" style="color: #2563eb; font-size: 1.25rem;">--</span> / 100
+        <span id="cert-kktp-status" style="margin-left: 8px; font-size: 0.85rem; padding: 2px 8px; border-radius: 6px; background: #ecfdf5; color: #047857;">TUNTAS</span>
+      </div>
+
+      <!-- Section Score Breakdown -->
+      <div class="section-score-breakdown">
+        <div class="section-score-box">
+          <div class="label">Section 1: Listening</div>
+          <div class="val" id="cert-sec1-score">--</div>
+          <div style="font-size: 0.72rem; color: #64748b;" id="cert-sec1-raw">--/50 Benar</div>
+        </div>
+        <div class="section-score-box">
+          <div class="label">Section 2: Structure</div>
+          <div class="val" id="cert-sec2-score">--</div>
+          <div style="font-size: 0.72rem; color: #64748b;" id="cert-sec2-raw">--/40 Benar</div>
+        </div>
+        <div class="section-score-box">
+          <div class="label">Section 3: Reading</div>
+          <div class="val" id="cert-sec3-score">--</div>
+          <div style="font-size: 0.72rem; color: #64748b;" id="cert-sec3-raw">--/50 Benar</div>
+        </div>
+      </div>
+
+      <!-- Student Credentials Summary -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 0.85rem; text-align: left; margin-bottom: 20px; line-height: 1.6;">
+        <div><strong>Nama:</strong> <span id="cert-student-name">--</span></div>
+        <div><strong>Sekolah:</strong> <span id="cert-student-school">--</span></div>
+        <div><strong>Tingkat / Jurusan / Rombel:</strong> <span id="cert-student-class">--</span></div>
+        <div><strong>Sesi Ujian (Password):</strong> <span id="cert-session-token">--</span></div>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+        <a href="index.html" class="btn btn-outline">🏠 Kembali ke Beranda</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Scripts -->
+  <script src="bank-paket1.js"></script>
+  <script src="bank-paket2.js"></script>
+  <script src="test-toefl.js"></script>
+</body>
+</html>

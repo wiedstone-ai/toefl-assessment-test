@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TOEFL Assessment Test — Portal Asesmen Kemahiran Bahasa Inggris</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .portal-card {
+      max-width: 720px;
+      margin: 30px auto;
+      padding: 36px 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+      border: 1.5px solid #e2e8f0;
+    }
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .spec-item {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .spec-item .num {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .spec-item .lbl {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 2px;
+      font-weight: 600;
+    }
+    @media (max-width: 600px) {
+      .spec-grid {
+        grid-template-columns: 1fr;
+      }
+      .portal-card {
+        padding: 24px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Neutral Academic Header -->
+  <header>
+    <div class="header-container">
+      <div class="portal-brand">
+        <div class="portal-logo-badge">ETS / ITP</div>
+        <div class="brand-text">
+          <h1>TOEFL ASSESSMENT TEST SYSTEM</h1>
+          <p>Institutional English Proficiency Evaluation — Standard Level 1</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="Kisi_Kisi_dan_Vocabulary_TOEFL_B1_Tingkat_XII.xlsx" download class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.4); font-size: 0.85rem;">
+          📥 Download Kisi-Kisi &amp; Kamus (.xlsx)
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <div class="portal-card">
+      
+      <!-- Notice Box: CEFR Level B1 Target & IELTS Equivalence -->
+      <div class="notice-box">
+        <div class="notice-icon">🎯</div>
+        <div>
+          <div class="notice-title">Target Standar Capaian Kelulusan (CEFR Level B1)</div>
+          <div class="notice-desc">
+            Asesmen ini menguji kemahiran bahasa Inggris standar akademik dengan target capaian minimum <strong>Level B1 (Independent User)</strong>, yang setara dengan <strong>Skor Prediksi TOEFL ITP minimal 433</strong> atau <strong>IELTS Band 4.5 – 5.0</strong> (Kriteria Ketuntasan Minimal / KKTP: <strong>75</strong>).
+          </div>
+        </div>
+      </div>
+
+      <!-- Test Structure Summary -->
+      <div class="spec-grid">
+        <div class="spec-item">
+          <div class="num">50 Soal</div>
+          <div class="lbl">Section 1: Listening Comprehension</div>
+        </div>
+        <div class="spec-item">
+          <div class="num">40 Soal</div>
+          <div class="lbl">Section 2: Structure &amp; Written Expr.</div>
+        </div>
+        <div class="spec-item">
+          <div class="num">50 Soal</div>
+          <div class="lbl">Section 3: Reading Comprehension</div>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin: 18px 0 24px;">
+        <span style="font-size: 0.88rem; font-weight: 700; color: #475569; background: #f1f5f9; padding: 6px 16px; border-radius: 20px; border: 1px solid #cbd5e1;">
+          ⏱️ Total 140 Butir Soal | Alokasi Waktu Penuh: 115 Menit | Dual Scoring: TOEFL 310–677 &amp; Skala 1–100
+        </span>
+      </div>
+
+      <!-- Student Identity Form -->
+      <form id="portal-form" onsubmit="event.preventDefault(); goToVerification();">
+        <h3 style="font-size: 1.15rem; color: var(--primary-navy); margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+          📝 Identitas Peserta Didik
+        </h3>
+
+        <!-- Asal Sekolah -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="input-sekolah">Asal Sekolah <span style="color:red;">*</span></label>
+          <select id="input-sekolah" class="form-control" required>
+            <option value="">-- Pilih Asal Sekolah --</option>
+            <option value="SMK Negeri 2 Pati">SMK Negeri 2 Pati</option>
+            <option value="SMA Negeri 1 Bae Kudus">SMA Negeri 1 Bae Kudus</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <!-- Tingkat Kelas (Default XII) -->
+          <div class="form-group">
+            <label for="input-tingkat">Tingkat Kelas <span style="color:red;">*</span></label>
+            <select id="input-tingkat" class="form-control" required>
+              <option value="X">Kelas X (Fase E)</option>
+              <option value="XI">Kelas XI (Fase F)</option>
+              <option value="XII" selected>Kelas XII (Fase F+)</option>
+            </select>
+          </div>
+
+          <!-- Kompetensi Keahlian -->
+          <div class="form-group">
+            <label for="input-keahlian">Kompetensi Keahlian <span style="color:red;">*</span></label>
+            <select id="input-keahlian" class="form-control" required>
+              <option value="">-- Pilih Kompetensi Keahlian --</option>
+              <option value="Umum">Umum / Reguler (SMA)</option>
+              <option value="B">B — Desain Pemodelan &amp; Informasi Bangunan / DPIB</option>
+              <option value="E">E — Teknik Elektronika (TAV / TEI)</option>
+              <option value="L">L — Teknik Ketenagalistrikan (TITL)</option>
+              <option value="M">M — Teknik Mesin (TPM)</option>
+              <option value="O">O — Teknik Otomotif (TKRO / TBSM)</option>
+              <option value="D">D — Desain Komunikasi Visual (DKV)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <!-- Rombel (1 - 12) -->
+          <div class="form-group">
+            <label for="input-rombel">Rombel (Rombongan Belajar) <span style="color:red;">*</span></label>
+            <select id="input-rombel" class="form-control" required>
+              <option value="">-- Pilih Rombel (1 s.d. 12) --</option>
+              <option value="1">Rombel 1</option>
+              <option value="2">Rombel 2</option>
+              <option value="3">Rombel 3</option>
+              <option value="4">Rombel 4</option>
+              <option value="5">Rombel 5</option>
+              <option value="6">Rombel 6</option>
+              <option value="7">Rombel 7</option>
+              <option value="8">Rombel 8</option>
+              <option value="9">Rombel 9</option>
+              <option value="10">Rombel 10</option>
+              <option value="11">Rombel 11</option>
+              <option value="12">Rombel 12</option>
+            </select>
+          </div>
+
+          <!-- Nomor Presensi -->
+          <div class="form-group">
+            <label for="input-presensi">Nomor Presensi (1 s.d. 36) <span style="color:red;">*</span></label>
+            <input type="text" id="input-presensi" class="form-control" placeholder="Contoh: 7 (Bukan 07)" maxlength="2" required oninput="validatePresensi(this)">
+          </div>
+        </div>
+
+        <!-- Nama Lengkap -->
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label for="input-nama">Nama Lengkap Peserta Didik <span style="color:red;">*</span></label>
+          <input type="text" id="input-nama" class="form-control" placeholder="Nama lengkap sesuai daftar presensi resmi" required>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary btn-block" style="padding: 14px; font-size: 1.05rem; border-radius: 8px;">
+          Lanjut ke Verifikasi Password Sesi Ujian ➔
+        </button>
+
+        <div style="text-align: center; margin-top: 18px;">
+          <a href="Kisi_Kisi_dan_Vocabulary_TOEFL_B1_Tingkat_XII.xlsx" download style="color: #2563eb; font-weight: 700; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px;">
+            📄 Unduh File Excel Kisi-Kisi Materi &amp; 120+ Kosakata TOEFL B1 untuk Belajar ➔
+          </a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p><strong>TOEFL Assessment Test System</strong> — Institutional English Proficiency Assessment</p>
+    <p style="font-size: 0.8rem; margin-top: 4px;">Kurikulum Merdeka — Fase F / Tingkat XII TP 2026/2027</p>
+    <p style="font-size: 0.75rem; margin-top: 8px;">
+      <a href="pass.html" style="color: #94a3b8; text-decoration: none;">⚙️ Akses Manajemen Password &amp; Sesi Ujian (Khusus Guru/Pengawas)</a>
+    </p>
+  </footer>
+
+  <script>
+    // Validasi presensi: angka 1 s.d. 36 tanpa awalan nol
+    function validatePresensi(input) {
+      let val = input.value.replace(/\D/g, '');
+      if (val.startsWith('0')) {
+        val = val.replace(/^0+/, '');
+      }
+      let num = parseInt(val, 10);
+      if (num > 36) val = '36';
+      input.value = val;
+    }
+
+    // Load data tersimpan jika siswa me-refresh
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('toefl_student_info');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.sekolah) document.getElementById('input-sekolah').value = data.sekolah;
+          if (data.tingkat) document.getElementById('input-tingkat').value = data.tingkat;
+          if (data.keahlian) document.getElementById('input-keahlian').value = data.keahlian;
+          if (data.rombel) document.getElementById('input-rombel').value = data.rombel;
+          if (data.presensi) document.getElementById('input-presensi').value = data.presensi;
+          if (data.nama) document.getElementById('input-nama').value = data.nama;
+        } catch(e) {}
+      }
+    });
+
+    // Pindah ke verifikasi password sesi
+    function goToVerification() {
+      const sekolah = document.getElementById('input-sekolah').value;
+      const tingkat = document.getElementById('input-tingkat').value;
+      const keahlian = document.getElementById('input-keahlian').value;
+      const rombel = document.getElementById('input-rombel').value;
+      const presensi = document.getElementById('input-presensi').value.trim();
+      const nama = document.getElementById('input-nama').value.trim();
+
+      if (!sekolah || !tingkat || !keahlian || !rombel || !presensi || !nama) {
+        alert("Harap lengkapi seluruh kolom identitas peserta didik!");
+        return;
+      }
+
+      const studentInfo = {
+        sekolah,
+        tingkat,
+        keahlian,
+        rombel,
+        presensi,
+        nama
+      };
+
+      // Simpan ke localStorage dan sessionStorage
+      localStorage.setItem('toefl_student_info', JSON.stringify(studentInfo));
+      sessionStorage.setItem('toefl_student_info', JSON.stringify(studentInfo));
+
+      window.location.href = 'masuk-toefl.html';
+    }
+  </script>
+</body>
+</html>
