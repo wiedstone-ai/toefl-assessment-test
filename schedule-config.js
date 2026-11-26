@@ -17,7 +17,7 @@
  * =========================================================================
  */
 
-const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbxUcptl2lfudxJKpHS0jw0_P8aORHrfmqTubTzXRIAWc1ho0SdLNQEPetXUdgi-G4iB/exec";
+const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbxQVfzdKTmUrbRLqv_NaPWWDofpn4tZGl3fmPJNlwL8Tms2IpqtsL3hGke9-lp2yUTt/exec";
 
 // 4 Jadwal Baku Sesi @ 3 Jam (Termasuk 1 Jam Grace Period, Toleransi Masuk: 60 Menit)
 const DEFAULT_SCHEDULES = [

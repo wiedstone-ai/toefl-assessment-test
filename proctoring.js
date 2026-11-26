@@ -1,0 +1,584 @@
+/**
+ * ============================================================================
+ * SMART PROCTORING & INTEGRITY MONITORING ENGINE 2026
+ * TOEFL ASSESSMENT TEST SYSTEM
+ * 
+ * Fitur:
+ * 1. Live In-Browser Webcam Feed (Kotak Kamera Pengawas Mengambang)
+ * 2. Deteksi Perpindahan Tab & Jendela (Tab-Switch & Blur Detection)
+ * 3. Sistem Peringatan Tiga Tingkat (Maks. 3x Pelanggaran -> Auto-Submit)
+ * 4. Pemblokiran Klik Kanan, Salin-Tempel (Anti-Copy Paste) & Developer Tools
+ * 5. Integrasi Data Pelanggaran ke Google Sheets & Sertifikat Nilai
+ * ============================================================================
+ */
+
+(function () {
+  "use strict";
+
+  const PROCTOR_CONFIG = {
+    maxViolations: 3,
+    debounceTimeMs: 1800,
+    cameraWidth: 170,
+    cameraHeight: 125,
+  };
+
+  let tabSwitchCount = 0;
+  let lastViolationTime = 0;
+  let cameraStream = null;
+  let isProctorActive = true;
+  let isModalOpen = false;
+  let isSystemDialogOpen = false;
+  let proctorGraceUntil = 0;
+
+  // Nada Alarm Peringatan (Web Audio API)
+  function playAlarmBeep(isSevere) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = isSevere ? "sawtooth" : "sine";
+      osc.frequency.setValueAtTime(isSevere ? 880 : 587, ctx.currentTime);
+      if (isSevere) {
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.35);
+      }
+
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {
+      // Abaikan jika diblokir kebijakan autoplay browser
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 1. KAMERA PENGAWAS MENGAMBANG (FLOATING WEBCAM PROCTOR)
+  // --------------------------------------------------------------------------
+  async function initWebcamProctor() {
+    const container = document.createElement("div");
+    container.id = "toefl-proctor-cam";
+    container.style.cssText = [
+      "position: fixed",
+      "bottom: 18px",
+      "right: 18px",
+      "width: " + PROCTOR_CONFIG.cameraWidth + "px",
+      "background: #0f172a",
+      "border: 2.5px solid #10b981",
+      "border-radius: 10px",
+      "box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4), 0 8px 10px -6px rgba(0,0,0,0.2)",
+      "z-index: 99998",
+      "overflow: hidden",
+      "font-family: 'Segoe UI', system-ui, sans-serif",
+      "transition: transform 0.2s ease, opacity 0.2s ease",
+      "user-select: none"
+    ].join(";");
+
+    const header = document.createElement("div");
+    header.style.cssText = [
+      "background: #1e293b",
+      "padding: 6px 10px",
+      "display: flex",
+      "justify-content: space-between",
+      "align-items: center",
+      "cursor: move",
+      "color: #ffffff",
+      "font-size: 11px",
+      "font-weight: 700",
+      "border-bottom: 1px solid #334155"
+    ].join(";");
+
+    header.innerHTML = [
+      '<span style="display: flex; align-items: center; gap: 6px;">',
+      '  <span id="toefl-cam-dot" style="display: inline-block; width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; animation: toeflPulse 1.5s infinite;"></span>',
+      '  <span>KAMERA PENGAWAS</span>',
+      '</span>',
+      '<span id="toefl-cam-toggle" style="cursor: pointer; font-size: 13px; font-weight: bold; padding: 0 4px; color: #94a3b8;" title="Kecilkan / Perbesar">-</span>'
+    ].join("");
+
+    const video = document.createElement("video");
+    video.id = "toefl-proctor-video";
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+    video.style.cssText = [
+      "width: 100%",
+      "height: " + PROCTOR_CONFIG.cameraHeight + "px",
+      "object-fit: cover",
+      "transform: scaleX(-1)",
+      "display: block",
+      "background: #000"
+    ].join(";");
+
+    const footer = document.createElement("div");
+    footer.id = "toefl-cam-footer";
+    footer.style.cssText = [
+      "background: rgba(15, 23, 42, 0.95)",
+      "color: #94a3b8",
+      "font-size: 10px",
+      "padding: 4px 8px",
+      "text-align: center",
+      "border-top: 1px solid #1e293b",
+      "display: flex",
+      "justify-content: space-between",
+      "align-items: center"
+    ].join(";");
+
+    footer.innerHTML = [
+      '<span>Status: <strong id="toefl-cam-status-text" style="color: #22c55e;">Aktif</strong></span>',
+      '<span id="toefl-cam-strike-text">Pelanggaran: <strong style="color: #22c55e;">0/3</strong></span>'
+    ].join("");
+
+    container.appendChild(header);
+    container.appendChild(video);
+    container.appendChild(footer);
+    document.body.appendChild(container);
+
+    let isMinimized = false;
+    const toggleBtn = header.querySelector("#toefl-cam-toggle");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        isMinimized = !isMinimized;
+        if (isMinimized) {
+          video.style.display = "none";
+          footer.style.display = "none";
+          toggleBtn.innerText = "+";
+          container.style.width = "155px";
+        } else {
+          video.style.display = "block";
+          footer.style.display = "flex";
+          toggleBtn.innerText = "-";
+          container.style.width = PROCTOR_CONFIG.cameraWidth + "px";
+        }
+      });
+    }
+
+    makeElementDraggable(container, header);
+
+    // Minta akses kamera (cegah false-positive blur saat dialog izin muncul)
+    isSystemDialogOpen = true;
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 320 },
+          height: { ideal: 240 }
+        },
+        audio: false
+      });
+      video.srcObject = cameraStream;
+    } catch (camErr) {
+      console.warn("Proctor camera stream error:", camErr);
+      const dot = document.getElementById("toefl-cam-dot");
+      if (dot) {
+        dot.style.background = "#ef4444";
+        dot.style.boxShadow = "none";
+      }
+      const statusTxt = document.getElementById("toefl-cam-status-text");
+      if (statusTxt) {
+        statusTxt.innerText = "Mati";
+        statusTxt.style.color = "#ef4444";
+      }
+      video.style.display = "none";
+      const errorMsg = document.createElement("div");
+      errorMsg.style.cssText = "padding: 12px 8px; color: #fca5a5; font-size: 10px; text-align: center; line-height: 1.4;";
+      errorMsg.innerHTML = "<strong>Kamera Belum Aktif</strong><br>Izinkan kamera pada peramban Anda.";
+      container.insertBefore(errorMsg, footer);
+    } finally {
+      isSystemDialogOpen = false;
+      proctorGraceUntil = Date.now() + 1500;
+    }
+  }
+
+  function makeElementDraggable(elmnt, dragHandle) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    dragHandle.onmousedown = dragMouseDown;
+    dragHandle.ontouchstart = dragTouchStart;
+
+    function dragMouseDown(e) {
+      e.preventDefault();
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      document.onmouseup = closeDragElement;
+      document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+      e.preventDefault();
+      pos1 = pos3 - e.clientX;
+      pos2 = pos4 - e.clientY;
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+      elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+      elmnt.style.bottom = "auto";
+      elmnt.style.right = "auto";
+    }
+
+    function closeDragElement() {
+      document.onmouseup = null;
+      document.onmousemove = null;
+    }
+
+    function dragTouchStart(e) {
+      const touch = e.touches[0];
+      pos3 = touch.clientX;
+      pos4 = touch.clientY;
+      document.ontouchend = closeTouchDrag;
+      document.ontouchmove = elementTouchDrag;
+    }
+
+    function elementTouchDrag(e) {
+      const touch = e.touches[0];
+      pos1 = touch.clientX - pos3;
+      pos2 = touch.clientY - pos4;
+      pos3 = touch.clientX;
+      pos4 = touch.clientY;
+      elmnt.style.top = (elmnt.offsetTop + pos2) + "px";
+      elmnt.style.left = (elmnt.offsetLeft + pos1) + "px";
+      elmnt.style.bottom = "auto";
+      elmnt.style.right = "auto";
+    }
+
+    function closeTouchDrag() {
+      document.ontouchend = null;
+      document.ontouchmove = null;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 2. DETEKSI TAB SWITCH & JENDELA (TAB-SWITCH DETECTOR)
+  // --------------------------------------------------------------------------
+  function initTabSwitchDetector() {
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        recordTabViolation("Berpindah tab atau membuka aplikasi lain di luar ruang ujian.");
+      }
+    });
+
+    window.addEventListener("blur", function () {
+      if (!isModalOpen && !isSystemDialogOpen && Date.now() >= proctorGraceUntil) {
+        recordTabViolation("Meninggalkan jendela peramban ujian.");
+      }
+    });
+  }
+
+  function recordTabViolation(reason) {
+    if (!isProctorActive) return;
+    if (window.isExamSubmitted || window.examFinished) return;
+    if (isSystemDialogOpen) return;
+    if (Date.now() < proctorGraceUntil) return;
+
+    const now = Date.now();
+    if (now - lastViolationTime < PROCTOR_CONFIG.debounceTimeMs) {
+      return;
+    }
+    lastViolationTime = now;
+
+    tabSwitchCount++;
+    playAlarmBeep(tabSwitchCount >= 2);
+
+    const strikeText = document.getElementById("toefl-cam-strike-text");
+    if (strikeText) {
+      const color = tabSwitchCount >= 2 ? "#ef4444" : "#f59e0b";
+      strikeText.innerHTML = 'Pelanggaran: <strong style="color: ' + color + ';">' + tabSwitchCount + '/3</strong>';
+    }
+
+    showViolationModal(tabSwitchCount, reason);
+  }
+
+  function showViolationModal(count, reason) {
+    isModalOpen = true;
+
+    const oldModal = document.getElementById("toefl-violation-modal");
+    if (oldModal) oldModal.remove();
+
+    const isFinalStrike = count >= PROCTOR_CONFIG.maxViolations;
+    const remaining = Math.max(0, PROCTOR_CONFIG.maxViolations - count);
+
+    const modal = document.createElement("div");
+    modal.id = "toefl-violation-modal";
+    modal.style.cssText = [
+      "position: fixed",
+      "top: 0",
+      "left: 0",
+      "width: 100vw",
+      "height: 100vh",
+      "background: rgba(15, 23, 42, 0.85)",
+      "backdrop-filter: blur(4px)",
+      "z-index: 999999",
+      "display: flex",
+      "align-items: center",
+      "justify-content: center",
+      "padding: 20px",
+      "font-family: 'Segoe UI', system-ui, sans-serif",
+      "animation: toeflFadeIn 0.2s ease"
+    ].join(";");
+
+    const card = document.createElement("div");
+    const borderColor = isFinalStrike ? "#dc2626" : (count === 2 ? "#ea580c" : "#f59e0b");
+    card.style.cssText = [
+      "background: #ffffff",
+      "border-radius: 14px",
+      "max-width: 480px",
+      "width: 100%",
+      "padding: 28px 24px",
+      "box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+      "border: 3px solid " + borderColor,
+      "text-align: center"
+    ].join(";");
+
+    let iconSvg = "";
+    if (isFinalStrike) {
+      iconSvg = '<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 10px auto; display: block;"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    } else if (count === 2) {
+      iconSvg = '<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 10px auto; display: block;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    } else {
+      iconSvg = '<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 10px auto; display: block;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    }
+
+    const title = isFinalStrike
+      ? "PELANGGARAN MAKSIMAL! UJIAN DIHENTIKAN"
+      : ("PERINGATAN KECURANGAN #" + count + " DARI 3");
+
+    let bodyMsg = "";
+    if (isFinalStrike) {
+      bodyMsg = [
+        '<p style="color: #991b1b; font-size: 1rem; font-weight: 700; margin-bottom: 10px;">',
+        '  Anda telah berpindah tab atau meninggalkan jendela ujian sebanyak 3 kali!',
+        '</p>',
+        '<p style="color: #475569; font-size: 0.9rem; line-height: 1.5; margin-bottom: 18px;">',
+        '  Sesuai tata tertib asesmen TOEFL resmi, ujian Anda dihentikan secara otomatis. Jawaban yang telah Anda pilih segera dikirimkan ke server rekapitulasi dengan catatan pelanggaran.',
+        '</p>'
+      ].join("");
+    } else {
+      bodyMsg = [
+        '<p style="color: #1e293b; font-size: 0.95rem; font-weight: 600; margin-bottom: 8px;">',
+        '  Alasan: <span style="color: #dc2626;">' + reason + '</span>',
+        '</p>',
+        '<p style="color: #475569; font-size: 0.88rem; line-height: 1.5; margin-bottom: 14px;">',
+        '  Anda <strong>DILARANG</strong> membuka tab lain, mesin pencari (Google), kamus online, atau aplikasi lain selama asesmen berlangsung.',
+        '</p>',
+        '<div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 10px; margin-bottom: 18px;">',
+        '  <strong style="color: #b91c1c; font-size: 0.95rem;">',
+        '    Sisa Peringatan: ' + remaining + ' kali lagi!',
+        '  </strong>',
+        '  <div style="font-size: 0.8rem; color: #7f1d1d; margin-top: 4px;">',
+        '    Jika mencapai 3 kali, ujian Anda akan otomatis dikumpulkan secara permanen.',
+        '  </div>',
+        '</div>'
+      ].join("");
+    }
+
+    card.innerHTML = [
+      iconSvg,
+      '<h3 style="color: ' + (isFinalStrike ? "#b91c1c" : "#1e293b") + '; font-size: 1.25rem; font-weight: 800; margin-bottom: 12px;">',
+      title,
+      '</h3>',
+      bodyMsg
+    ].join("");
+
+    const actionBtn = document.createElement("button");
+    actionBtn.className = "btn";
+    if (isFinalStrike) {
+      actionBtn.innerHTML = "Kumpulkan Ujian Sekarang &rarr;";
+      actionBtn.style.cssText = "background: #dc2626; color: #fff; padding: 12px 24px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; width: 100%; font-size: 1rem;";
+      actionBtn.onclick = function () {
+        modal.remove();
+        isModalOpen = false;
+        triggerAutoSubmit();
+      };
+    } else {
+      actionBtn.innerText = "Saya Mengerti & Kembali ke Ujian";
+      actionBtn.style.cssText = "background: #0f172a; color: #fff; padding: 12px 24px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; width: 100%; font-size: 0.95rem;";
+      actionBtn.onclick = function () {
+        modal.remove();
+        isModalOpen = false;
+      };
+    }
+
+    card.appendChild(actionBtn);
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+
+    if (isFinalStrike) {
+      setTimeout(function () {
+        if (modal.parentNode) modal.remove();
+        isModalOpen = false;
+        triggerAutoSubmit();
+      }, 4000);
+    }
+  }
+
+  function triggerAutoSubmit() {
+    isProctorActive = false;
+    window.isExamSubmitted = true;
+    if (typeof window.executeFinalSubmission === "function") {
+      window.executeFinalSubmission();
+    } else {
+      const submitBtn = document.getElementById("btn-final-submit");
+      if (submitBtn) submitBtn.click();
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 3. KEAMANAN INTERAKSI (ANTI-COPY PASTE & DEVTOOLS)
+  // --------------------------------------------------------------------------
+  function initInteractionRestrictions() {
+    document.addEventListener("contextmenu", function (e) {
+      e.preventDefault();
+      return false;
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.ctrlKey || e.metaKey) {
+        const key = e.key.toLowerCase();
+        if (["c", "v", "x", "a", "u", "s", "p"].indexOf(key) !== -1) {
+          e.preventDefault();
+          return false;
+        }
+      }
+
+      if (e.key === "F12") {
+        e.preventDefault();
+        return false;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+        const key = e.key.toLowerCase();
+        if (["i", "j", "c"].indexOf(key) !== -1) {
+          e.preventDefault();
+          return false;
+        }
+      }
+    });
+
+    const style = document.createElement("style");
+    style.innerHTML = [
+      "#question-card, .question-container, .stimulus-card, #options-container {",
+      "  -webkit-user-select: none !important;",
+      "  -moz-user-select: none !important;",
+      "  -ms-user-select: none !important;",
+      "  user-select: none !important;",
+      "}",
+      "@keyframes toeflPulse {",
+      "  0%, 100% { opacity: 1; transform: scale(1); }",
+      "  50% { opacity: 0.4; transform: scale(0.85); }",
+      "}",
+      "@keyframes toeflFadeIn {",
+      "  from { opacity: 0; transform: scale(0.96); }",
+      "  to { opacity: 1; transform: scale(1); }",
+      "}"
+    ].join("\n");
+    document.head.appendChild(style);
+  }
+
+  // --------------------------------------------------------------------------
+  // 4. TOMBOL MODE LAYAR PENUH (FULLSCREEN TOGGLE)
+  // --------------------------------------------------------------------------
+  function initFullscreenButton() {
+    const headerActions = document.getElementById("header-actions") || document.querySelector(".header-actions");
+    if (headerActions) {
+      const fsBtn = document.createElement("button");
+      fsBtn.id = "btn-proctor-fs";
+      fsBtn.className = "btn btn-outline";
+      fsBtn.style.cssText = "color: white; border-color: rgba(255,255,255,0.4); font-size: 0.85rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px;";
+      fsBtn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: middle;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg><span>Layar Penuh</span>';
+      fsBtn.onclick = toggleFullscreen;
+      headerActions.insertBefore(fsBtn, headerActions.firstChild);
+    }
+  }
+
+  function toggleFullscreen() {
+    proctorGraceUntil = Date.now() + 1000;
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(function () {});
+      }
+    }
+  }
+
+  function wrapNativeDialogsAndExamLifecycle() {
+    if (typeof window.confirm === "function" && !window.confirm._isProctorWrapped) {
+      const origConfirm = window.confirm;
+      window.confirm = function () {
+        isSystemDialogOpen = true;
+        try {
+          return origConfirm.apply(this, arguments);
+        } finally {
+          isSystemDialogOpen = false;
+          proctorGraceUntil = Date.now() + 1200;
+        }
+      };
+      window.confirm._isProctorWrapped = true;
+    }
+
+    if (typeof window.alert === "function" && !window.alert._isProctorWrapped) {
+      const origAlert = window.alert;
+      window.alert = function () {
+        isSystemDialogOpen = true;
+        try {
+          return origAlert.apply(this, arguments);
+        } finally {
+          isSystemDialogOpen = false;
+          proctorGraceUntil = Date.now() + 1200;
+        }
+      };
+      window.alert._isProctorWrapped = true;
+    }
+
+    if (typeof window.executeFinalSubmission === "function" && !window.executeFinalSubmission._isProctorHooked) {
+      const origSubmit = window.executeFinalSubmission;
+      window.executeFinalSubmission = function () {
+        isProctorActive = false;
+        window.isExamSubmitted = true;
+        if (window.toeflProctor) {
+          window.toeflProctor.stopCamera();
+        }
+        return origSubmit.apply(this, arguments);
+      };
+      window.executeFinalSubmission._isProctorHooked = true;
+    }
+  }
+
+  // Expose API ke Window
+  window.toeflProctor = {
+    getViolationCount: function () { return tabSwitchCount; },
+    getIntegrityStatus: function () {
+      if (tabSwitchCount === 0) return "AMAN (Tertib)";
+      if (tabSwitchCount >= PROCTOR_CONFIG.maxViolations) return "AUTO-SUBMIT (3x PELANGGARAN TAB)";
+      return "PERINGATAN (" + tabSwitchCount + "x KELUAR TAB)";
+    },
+    stopCamera: function () {
+      isProctorActive = false;
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(function (track) { track.stop(); });
+        cameraStream = null;
+      }
+    }
+  };
+
+  function bootProctor() {
+    wrapNativeDialogsAndExamLifecycle();
+    initWebcamProctor();
+    initTabSwitchDetector();
+    initInteractionRestrictions();
+    initFullscreenButton();
+  }
+
+  if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", bootProctor);
+  } else {
+    bootProctor();
+  }
+
+})();

@@ -161,14 +161,17 @@
       <!-- Spreadsheet Connection Settings -->
       <div class="card" style="margin-bottom: 24px;">
         <h3 style="font-size: 1.15rem; color: var(--primary-navy); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <span>📊 Integrasi Google Spreadsheet &amp; Rekap Nilai</span>
+          <span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span>📊 Integrasi Google Spreadsheet &amp; Rekap Nilai</span>
+            <span id="gas-status-badge" style="padding: 3px 9px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; background: #fef3c7; color: #92400e;">⏳ Memeriksa Server...</span>
+          </span>
           <a href="https://docs.google.com/spreadsheets/d/13RyeWSQwfngQJOyS6vgAX9MKfPbXaJNkI8JDEKXrGfI/edit" target="_blank" class="btn btn-outline" style="font-size: 0.82rem; padding: 4px 10px;">
             🔗 Buka Google Sheet
           </a>
         </h3>
         <p style="font-size: 0.88rem; color: #475569; margin-bottom: 12px;">
           ID Spreadsheet Aktif: <code>13RyeWSQwfngQJOyS6vgAX9MKfPbXaJNkI8JDEKXrGfI</code><br>
-          Sheet <code>Rekap_Nilai_TOEFL</code> mencatat otomatis nama siswa, sekolah, sesi/token, nilai prediksi TOEFL, skala 0-100, dan predikat CEFR.
+          Sheet <code>pass</code> mengelola token sesi &amp; pemetaan paket; Sheet <code>Rekap_Nilai_TOEFL</code> mencatat otomatis nama siswa, sekolah, sesi/token, nilai prediksi TOEFL, skala 0-100, predikat CEFR, dan integritas pengawas.
         </p>
         <div class="form-group">
           <label style="font-size: 0.85rem; font-weight: 700;">Google Apps Script Web App URL:</label>
@@ -176,6 +179,42 @@
             <input type="url" id="input-gs-url" class="form-control" style="font-size: 0.85rem;" placeholder="https://script.google.com/macros/s/.../exec">
             <button class="btn btn-primary" onclick="saveGsUrl()" style="white-space: nowrap;">Simpan URL</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Alert Notification Area -->
+      <div id="alert-box" style="display: none; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-weight: 600;"></div>
+
+      <!-- Pengaturan Mode Masuk Ujian TOEFL (Wajib Password vs Otomatis/Bypass) -->
+      <div class="card" style="margin-bottom: 24px; border-left: 5px solid #d97706; background: #fffbeb;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+          <div>
+            <h3 style="color: #92400e; margin: 0; font-size: 1.15rem;">⚙️ Mode Masuk Ujian TOEFL</h3>
+            <p style="color: #78350f; font-size: 0.85rem; margin-top: 4px; margin-bottom: 0;">
+              Atur apakah peserta ujian <strong>wajib memasukkan password</strong> (default) atau <strong>otomatis masuk tanpa password (bypass)</strong>.
+            </p>
+          </div>
+          <span class="badge-status" id="bypass-mode-badge" style="background: #dcfce7; color: #166534;">🔒 WAJIB PASSWORD (DEFAULT)</span>
+        </div>
+
+        <div class="form-group" style="margin-top: 10px; margin-bottom: 12px;">
+          <label for="bypass-paket" style="font-size: 0.84rem; color: #78350f; font-weight: 700;">Paket Soal Saat Mode Bypass Aktif:</label>
+          <select id="bypass-paket" class="form-control" style="max-width: 360px; background: white;" onchange="onBypassPaketChange()">
+            <option value="1">Paket 1 (140 Butir Soal - Aligned B1)</option>
+            <option value="2">Paket 2 (140 Butir Soal - Aligned B1)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
+          <button type="button" id="btn-mode-required" onclick="setBypassMode('OFF')" class="btn" style="flex: 1; min-width: 210px; padding: 11px 14px; font-weight: 700; border-radius: 8px; cursor: pointer; background: #059669; color: white; border: 2px solid #047857;">
+            🔒 Wajib Masukkan Password (Default)
+          </button>
+          <button type="button" id="btn-mode-bypass" onclick="setBypassMode('ON')" class="btn" style="flex: 1; min-width: 210px; padding: 11px 14px; font-weight: 700; border-radius: 8px; cursor: pointer; background: white; color: #b45309; border: 2px solid #f59e0b;">
+            ⚡ Otomatis / Bypass Password
+          </button>
+        </div>
+        <div style="font-size: 0.8rem; color: #78350f; margin-top: 8px;" id="meta-bypass">
+          Status saat ini: Wajib memasukkan password (Default).
         </div>
       </div>
 
@@ -318,6 +357,140 @@
 
       schedules = getScheduleList();
       renderTable();
+
+      const savedBypassPaket = localStorage.getItem('toefl_bypass_paket') || '1';
+      document.getElementById('bypass-paket').value = savedBypassPaket;
+      const savedBypassMode = localStorage.getItem('toefl_bypass_mode') || 'OFF';
+      applyBypassModeUI(savedBypassMode, null);
+      loadBypassStatus();
+    }
+
+    function showAlert(msg, isSuccess = true) {
+      const box = document.getElementById('alert-box');
+      if (!box) return;
+      box.style.display = 'block';
+      box.style.background = isSuccess ? '#dcfce7' : '#fee2e2';
+      box.style.color = isSuccess ? '#166534' : '#991b1b';
+      box.style.border = '1px solid ' + (isSuccess ? '#bbf7d0' : '#fecaca');
+      box.innerHTML = msg;
+      setTimeout(() => { box.style.display = 'none'; }, 9000);
+    }
+
+    function updateStatusBadge(text, bg, color) {
+      const badge = document.getElementById('gas-status-badge');
+      if (badge) {
+        badge.innerText = text;
+        badge.style.background = bg;
+        badge.style.color = color;
+      }
+    }
+
+    async function loadBypassStatus() {
+      const gsUrl = localStorage.getItem('toefl_gs_url') || DEFAULT_GS_URL;
+      updateStatusBadge("⏳ Memeriksa Server...", "#fef3c7", "#92400e");
+
+      try {
+        const resp = await fetch(`${gsUrl}?action=get_bypass_mode&t=${Date.now()}`);
+        const data = await resp.json();
+
+        if (data && data.status === "success") {
+          if (data.packageId) {
+            document.getElementById('bypass-paket').value = data.packageId === '2' ? '2' : '1';
+            localStorage.setItem('toefl_bypass_paket', data.packageId === '2' ? '2' : '1');
+          }
+          applyBypassModeUI(data.bypass ? 'ON' : 'OFF', data.updatedAt || null);
+          updateStatusBadge("🟢 Tersinkron dengan Sheet", "#dcfce7", "#166534");
+          return;
+        }
+        updateStatusBadge("⚠️ Format Server Belum Sesuai", "#fef3c7", "#92400e");
+      } catch (err) {
+        console.warn("Load bypass status error:", err);
+        updateStatusBadge("🔴 Mode Lokal / Offline", "#fee2e2", "#991b1b");
+      }
+    }
+
+    function applyBypassModeUI(mode, updatedAt) {
+      const isOn = String(mode || 'OFF').toUpperCase() === 'ON';
+      localStorage.setItem('toefl_bypass_mode', isOn ? 'ON' : 'OFF');
+
+      const badge = document.getElementById('bypass-mode-badge');
+      const btnReq = document.getElementById('btn-mode-required');
+      const btnByp = document.getElementById('btn-mode-bypass');
+      const meta = document.getElementById('meta-bypass');
+
+      if (isOn) {
+        if (badge) {
+          badge.innerText = "⚡ MODE BYPASS OTOMATIS AKTIF";
+          badge.style.background = "#fef3c7";
+          badge.style.color = "#b45309";
+        }
+        if (btnReq) {
+          btnReq.style.background = "white";
+          btnReq.style.color = "#059669";
+        }
+        if (btnByp) {
+          btnByp.style.background = "#d97706";
+          btnByp.style.color = "white";
+        }
+        if (meta) {
+          meta.innerText = "Status saat ini: Peserta langsung masuk tanpa password (Bypass)." + (updatedAt ? " | Diperbarui: " + updatedAt : "");
+        }
+      } else {
+        if (badge) {
+          badge.innerText = "🔒 WAJIB PASSWORD (DEFAULT)";
+          badge.style.background = "#dcfce7";
+          badge.style.color = "#166534";
+        }
+        if (btnReq) {
+          btnReq.style.background = "#059669";
+          btnReq.style.color = "white";
+        }
+        if (btnByp) {
+          btnByp.style.background = "white";
+          btnByp.style.color = "#b45309";
+        }
+        if (meta) {
+          meta.innerText = "Status saat ini: Wajib memasukkan password (Default)." + (updatedAt ? " | Diperbarui: " + updatedAt : "");
+        }
+      }
+    }
+
+    function onBypassPaketChange() {
+      const paket = document.getElementById('bypass-paket').value === '2' ? '2' : '1';
+      localStorage.setItem('toefl_bypass_paket', paket);
+      if (localStorage.getItem('toefl_bypass_mode') === 'ON') {
+        setBypassMode('ON');
+      }
+    }
+
+    async function setBypassMode(mode) {
+      const targetMode = (String(mode).toUpperCase() === 'ON') ? 'ON' : 'OFF';
+      const paket = document.getElementById('bypass-paket').value === '2' ? '2' : '1';
+      localStorage.setItem('toefl_bypass_paket', paket);
+      applyBypassModeUI(targetMode, 'Menyimpan...');
+      showAlert('⏳ Menyimpan pengaturan mode masuk (' + (targetMode === 'ON' ? 'Bypass Otomatis - Paket ' + paket : 'Wajib Password') + ') ke Google Sheets...', true);
+
+      const gsUrl = localStorage.getItem('toefl_gs_url') || DEFAULT_GS_URL;
+      const ket = targetMode === 'ON' ? 'ON - Mode Bypass Password Aktif' : 'OFF - Wajib Password (Default)';
+      const status = targetMode === 'ON' ? 'AKTIF' : 'NONAKTIF';
+
+      try {
+        const url = `${gsUrl}?action=set_password&token=BYPASS_MODE&keterangan=${encodeURIComponent(ket)}&paket=${encodeURIComponent(paket)}&status=${encodeURIComponent(status)}&t=${Date.now()}`;
+        const resp = await fetch(url);
+        const res = await resp.json();
+
+        if (res && res.status === "success") {
+          const nowStr = new Date().toLocaleTimeString('id-ID');
+          applyBypassModeUI(targetMode, 'Hari ini, ' + nowStr);
+          updateStatusBadge("🟢 Tersinkron dengan Sheet", "#dcfce7", "#166534");
+          showAlert('🎉 <strong>Berhasil!</strong> Mode masuk ujian TOEFL diatur ke: <strong>' + (targetMode === 'ON' ? 'Otomatis / Bypass Password (Paket ' + paket + ')' : 'Wajib Masukkan Password (Default)') + '</strong>.', true);
+          return;
+        }
+        showAlert('⚠️ Tersimpan di browser ini. Respons server: ' + (res && res.message ? res.message : 'Perlu deploy Apps Script terbaru.'), false);
+      } catch (err) {
+        console.warn("Save bypass mode error:", err);
+        showAlert('⚠️ Tersimpan lokal di browser ini. Gagal terhubung ke Google Sheets.', false);
+      }
     }
 
     function saveGsUrl() {

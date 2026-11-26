@@ -110,6 +110,29 @@
         </div>
       </div>
 
+      <!-- Protokol Pengawasan & Uji Kamera -->
+      <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px;">
+        <div style="font-weight: 700; color: #166534; font-size: 0.92rem; display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <svg width="20" height="20" fill="none" stroke="#166534" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          <span>Integritas Asesmen &amp; Smart Proctoring (Kamera Pengawas)</span>
+        </div>
+        <p style="font-size: 0.82rem; color: #334155; line-height: 1.45; margin-bottom: 10px;">
+          Selama ujian TOEFL berlangsung, <strong>kamera peramban wajib aktif</strong> dan sistem secara otomatis <strong>mencatat jika Anda berpindah tab / membuka aplikasi lain</strong> (maksimal 3x peringatan sebelum ujian otomatis dihentikan &amp; dikirim).
+        </p>
+        <div id="cam-test-area" style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 12px; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <video id="preview-test-video" autoplay playsinline muted style="display: none; width: 60px; height: 45px; object-fit: cover; border-radius: 4px; border: 2px solid #22c55e; transform: scaleX(-1);"></video>
+            <div id="cam-status-label" style="font-size: 0.82rem; font-weight: 600; color: #64748b;">
+              Status Kamera: <span style="color: #ea580c;">Belum Diuji</span>
+            </div>
+          </div>
+          <button type="button" id="btn-test-cam" onclick="testStudentWebcam()" class="btn btn-outline" style="padding: 5px 12px; font-size: 0.8rem; border-color: #16a34a; color: #166534; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <span>Uji Kamera</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Password Input Form -->
       <form id="auth-form" onsubmit="event.preventDefault(); verifyPassword();">
         <div class="form-group">
@@ -149,6 +172,7 @@
   <script src="schedule-config.js"></script>
   <script>
     let studentData = null;
+    let isResumingSession = false;
 
     window.addEventListener('DOMContentLoaded', () => {
       const raw = sessionStorage.getItem('toefl_student_info') || localStorage.getItem('toefl_student_info');
@@ -168,22 +192,139 @@
       const inputEl = document.getElementById('input-token');
       const submitBtn = document.getElementById('btn-submit-token');
       const savedTime = localStorage.getItem('toefl_time_1');
-      const isResuming = (savedTime && parseInt(savedTime, 10) > 0);
+      isResumingSession = !!(savedTime && parseInt(savedTime, 10) > 0);
 
       if (status.activeSession) {
         inputEl.value = status.activeSession.token;
-        if (status.isLate && !isResuming) {
+        if (status.isLate && !isResumingSession) {
           showStatus(`Akses Ditolak: Sesi ${status.activeSession.name} telah berlangsung ≥ 1 jam (${status.elapsedMinutes} menit). Silakan ikuti sesi selanjutnya.`, 'error');
           submitBtn.disabled = true;
           submitBtn.style.opacity = '0.5';
           submitBtn.style.cursor = 'not-allowed';
           submitBtn.textContent = '⛔ Akses Ditolak (Terlambat ≥ 1 Jam)';
-        } else if (isResuming) {
+        } else if (isResumingSession) {
           showStatus(`Sesi pengerjaan sebelumnya terdeteksi! Klik tombol di bawah untuk melanjutkan.`, 'success');
           submitBtn.textContent = '🔄 Lanjutkan Ujian Sekarang ➔';
         }
       }
+
+      checkBypassMode();
     });
+
+    let previewCamStream = null;
+
+    async function testStudentWebcam() {
+      const videoEl = document.getElementById('preview-test-video');
+      const statusEl = document.getElementById('cam-status-label');
+      const btnEl = document.getElementById('btn-test-cam');
+
+      if (previewCamStream) {
+        previewCamStream.getTracks().forEach(t => t.stop());
+        previewCamStream = null;
+        videoEl.style.display = 'none';
+        statusEl.innerHTML = 'Status Kamera: <span style="color: #ea580c;">Dihentikan</span>';
+        btnEl.querySelector('span').textContent = 'Uji Kamera';
+        return;
+      }
+
+      statusEl.innerHTML = 'Status Kamera: <span style="color: #2563eb;">Meminta izin...</span>';
+      try {
+        previewCamStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 240 } },
+          audio: false
+        });
+        videoEl.srcObject = previewCamStream;
+        videoEl.style.display = 'block';
+        statusEl.innerHTML = 'Status Kamera: <span style="color: #16a34a;">Aktif &amp; Siap</span>';
+        btnEl.querySelector('span').textContent = 'Tutup Uji';
+      } catch (err) {
+        console.warn("Test camera error:", err);
+        statusEl.innerHTML = 'Status Kamera: <span style="color: #dc2626;">Ditolak / Tidak Terdeteksi</span>';
+      }
+    }
+
+    function grantAccess(token, sessionName, packageId) {
+      if (previewCamStream) {
+        previewCamStream.getTracks().forEach(t => t.stop());
+        previewCamStream = null;
+      }
+
+      // Hapus seluruh cache jawaban, flag, timer, dan posisi soal jika memulai sesi baru
+      if (!isResumingSession) {
+        try {
+          Object.keys(localStorage).forEach((k) => {
+            if (
+              k.startsWith('toefl_answers_') ||
+              k.startsWith('toefl_flags_') ||
+              k.startsWith('toefl_time_') ||
+              k.startsWith('toefl_curr_idx_')
+            ) {
+              localStorage.removeItem(k);
+            }
+          });
+        } catch (err) {}
+      }
+
+      sessionStorage.setItem('toefl_session_password', token);
+      sessionStorage.setItem('toefl_session_name', sessionName);
+      sessionStorage.setItem('toefl_package_id', packageId);
+
+      localStorage.setItem('toefl_session_password', token);
+      localStorage.setItem('toefl_package_id', packageId);
+
+      setTimeout(() => {
+        window.location.href = 'test-toefl.html';
+      }, 800);
+    }
+
+    async function checkBypassMode() {
+      const inputEl = document.getElementById('input-token');
+      const btnEl = document.getElementById('btn-submit-token');
+      const gsUrl = localStorage.getItem('toefl_gs_url') || DEFAULT_GS_URL;
+
+      try {
+        if (navigator.onLine) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const resp = await fetch(`${gsUrl}?action=get_bypass_mode&t=${Date.now()}`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          const data = await resp.json();
+
+          if (data && data.status === 'success' && data.bypass === true) {
+            if (inputEl) {
+              inputEl.value = 'BYPASS (OTOMATIS)';
+              inputEl.disabled = true;
+            }
+            if (btnEl) {
+              btnEl.textContent = '⚡ Masuk Otomatis (Tanpa Password)...';
+              btnEl.disabled = true;
+            }
+            showStatus('⚡ Mode Masuk Otomatis Aktif! Membuka ruang ujian TOEFL tanpa perlu memasukkan password...', 'success');
+            grantAccess('BYPASS (OTOMATIS)', 'Mode Bypass Guru', data.packageId === '2' ? '2' : '1');
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Bypass check error/timeout:", err);
+      }
+
+      // Offline/local fallback jika browser ini secara eksplisit disetel bypass
+      try {
+        if (localStorage.getItem('toefl_bypass_mode') === 'ON') {
+          const localPkg = localStorage.getItem('toefl_bypass_paket') === '2' ? '2' : '1';
+          if (inputEl) {
+            inputEl.value = 'BYPASS (OTOMATIS)';
+            inputEl.disabled = true;
+          }
+          if (btnEl) {
+            btnEl.textContent = '⚡ Masuk Otomatis (Tanpa Password)...';
+            btnEl.disabled = true;
+          }
+          showStatus('⚡ Mode Masuk Otomatis Aktif! Membuka ruang ujian TOEFL...', 'success');
+          grantAccess('BYPASS (OTOMATIS)', 'Mode Bypass Guru', localPkg);
+        }
+      } catch (e) {}
+    }
 
     async function verifyPassword() {
       const inputEl = document.getElementById('input-token');
@@ -217,15 +358,7 @@
 
       if (verified) {
         showStatus(`Password Valid! Memuat ruang ujian...`, 'success');
-        sessionStorage.setItem('toefl_session_password', token);
-        sessionStorage.setItem('toefl_session_name', sessionName);
-        sessionStorage.setItem('toefl_package_id', packageId);
-        localStorage.setItem('toefl_session_password', token);
-        localStorage.setItem('toefl_package_id', packageId);
-
-        setTimeout(() => {
-          window.location.href = 'test-toefl.html';
-        }, 500);
+        grantAccess(token, sessionName, packageId);
       } else {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<span>🚀</span> Verifikasi &amp; Masuk Lembar Soal TOEFL ➔';

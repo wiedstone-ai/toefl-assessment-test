@@ -7,7 +7,7 @@
  */
 
 // Google Apps Script Default Web App URL
-const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbxUcptl2lfudxJKpHS0jw0_P8aORHrfmqTubTzXRIAWc1ho0SdLNQEPetXUdgi-G4iB/exec";
+const DEFAULT_GS_URL = "https://script.google.com/macros/s/AKfycbxQVfzdKTmUrbRLqv_NaPWWDofpn4tZGl3fmPJNlwL8Tms2IpqtsL3hGke9-lp2yUTt/exec";
 
 // Official ETS TOEFL ITP Scaled Score Conversion Tables (Level 1)
 const ETS_LISTENING_CONVERSION = [
@@ -675,6 +675,15 @@ async function executeFinalSubmission() {
     `Kelas ${studentInfo.tingkat || 'XII'} | Keahlian ${studentInfo.keahlian || '-'} | Rombel ${studentInfo.rombel || '-'}`;
   document.getElementById('cert-session-token').textContent = sessionPassword;
 
+  const violationCount = window.toeflProctor ? window.toeflProctor.getViolationCount() : 0;
+  const integrityStatus = window.toeflProctor ? window.toeflProctor.getIntegrityStatus() : "AMAN (Tertib)";
+  const integrityEl = document.getElementById('cert-integrity-status');
+  if (integrityEl) {
+    integrityEl.textContent = integrityStatus;
+    integrityEl.style.color = violationCount === 0 ? "#047857" : "#b91c1c";
+    integrityEl.style.fontWeight = "700";
+  }
+
   document.getElementById('score-modal').style.display = 'flex';
 
   // 4. Send to Google Sheets (records session password!)
@@ -701,6 +710,8 @@ async function executeFinalSubmission() {
     grade100: grade100,
     cefrLevel: cefrText,
     duration: `${elapsedMinutes} menit`,
+    pelanggaran: violationCount,
+    integritasStatus: integrityStatus,
     answers: userAnswers
   };
 

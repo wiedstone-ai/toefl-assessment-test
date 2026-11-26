@@ -4,7 +4,7 @@
  * 
  * SPREADSHEET ID : 13RyeWSQwfngQJOyS6vgAX9MKfPbXaJNkI8JDEKXrGfI
  * SPREADSHEET URL: https://docs.google.com/spreadsheets/d/13RyeWSQwfngQJOyS6vgAX9MKfPbXaJNkI8JDEKXrGfI/edit
- * WEB APP URL    : https://script.google.com/macros/s/AKfycbxUcptl2lfudxJKpHS0jw0_P8aORHrfmqTubTzXRIAWc1ho0SdLNQEPetXUdgi-G4iB/exec
+ * WEB APP URL    : https://script.google.com/macros/s/AKfycbxQVfzdKTmUrbRLqv_NaPWWDofpn4tZGl3fmPJNlwL8Tms2IpqtsL3hGke9-lp2yUTt/exec
  * 
  * FITUR:
  * 1. Manajemen Password / Token Sesi Dinamis pada Sheet 'pass':
@@ -95,6 +95,8 @@ function getScoreSheet(ss) {
       "Predikat / Level CEFR",
       "Status KKTP (Min. 75)",
       "Durasi Pengerjaan",
+      "Pelanggaran Tab",
+      "Status Integritas",
       "Detail Jawaban Siswa"
     ];
     sheet.appendRow(headers);
@@ -163,6 +165,22 @@ function verifySessionPassword(tokenInput) {
     status: "error",
     valid: false,
     message: "Password sesi tidak ditemukan atau salah. Silakan tanyakan kepada Pengawas Ujian."
+  };
+}
+
+/**
+ * Mengecek apakah mode bypass password (otomatis tanpa input) sedang aktif
+ */
+function getBypassMode() {
+  const passwords = getAllPasswords();
+  const row = passwords.find(p => p.token.toUpperCase() === "BYPASS_MODE");
+  const isBypass = !!(row && row.status === "AKTIF" && String(row.keterangan || "").trim().toUpperCase().startsWith("ON"));
+  return {
+    status: "success",
+    bypass: isBypass,
+    mode: isBypass ? "ON" : "OFF",
+    packageId: (row && row.paket === "2") ? "2" : "1",
+    updatedAt: row ? row.updatedAt : "-"
   };
 }
 
@@ -282,6 +300,8 @@ function recordStudentSubmission(data) {
     cefrLevel,
     kktpStatus,
     data.duration || "-",
+    Number(data.pelanggaran || 0),
+    String(data.integritasStatus || "AMAN (Tertib)"),
     data.answers ? (typeof data.answers === "object" ? JSON.stringify(data.answers) : data.answers) : "-"
   ];
 
@@ -375,6 +395,10 @@ function doPost(e) {
       return sendJsonResponse({ status: "success", passwords: res });
     }
 
+    if (action === "get_bypass_mode" || action === "check_bypass") {
+      const res = getBypassMode();
+      return sendJsonResponse(res);
+    }
     if (action === "set_password" || action === "save_password") {
       const res = setSessionPassword(data.token, data.keterangan, data.paket, data.status);
       return sendJsonResponse(res);
@@ -412,6 +436,10 @@ function doGet(e) {
       return sendJsonResponse({ status: "success", passwords: res }, params.callback);
     }
 
+    if (action === "get_bypass_mode" || action === "check_bypass") {
+      const res = getBypassMode();
+      return sendJsonResponse(res, params.callback);
+    }
     if (action === "set_password" || action === "save_password") {
       const res = setSessionPassword(params.token, params.keterangan, params.paket, params.status);
       return sendJsonResponse(res, params.callback);
